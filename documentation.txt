@@ -1,0 +1,99 @@
+https://athemes.com
+https://wrappixel.com/templates/,atrix-admin
+1) 
+- Makinng New LAravel project composer create-project --prefer-dist laravel/laravel ecommerce "5.7.*"
+. Copying CSS,JS,Images,font to public folder
+.Copy CSS by Creating 2 CSS folder(backend-css and frontend-css)
+.Copy JS by Creating 2 JS folder(backend-js and frontend-jss)
+.Copy font by Creating 2 JS folder(backend-font and frontend-font)
+.Copy img by Creating 2 JS folder(backend-img and frontend-img)
+-Creating login page for Admin by including CSS,JS and Images and create Controller ,View,Route for login
+-Creating AdminController files for login and for other admin pages
+-command:php artisan make:controller AdminController
+
+2) Admin Controller
+- Creating login function in Admin Controller 
+-Making Route for Admin('/admin','AdminController@login');
+Also making path for CSS JS Img font |example({{asset('css/backedn_css/bootstar.css}})
+
+3)Admin Panel
+-Making laravel login process by using migration (migration help to create and modify in database)
+-Creating database name ecommerce
+-Changing .env file Db-database=ecommerce
+                     Db-username-root
+		 	Db-password
+-Create users table:
+ a) php artisan migration Run this command to create users table
+ b)php artisan make:auth-This command to create user table login/register pages that will later user for our admin Matrix-Login	
+ c)php artisan config?clear
+
+4)adding column in users table admin.making admin boolean and adding 1
+updating admin_login.blade.php 
+action="{{url('admin)}}">{{csrf_field}} method="post"|{{csrf_field}}->generates security for validating form.|
+Route::match(['post','get'],'/admin','AdminController@login' 
+Creating condition in AdminContorller 
+request->isMethod('post')to check if login form is submitted
+Auth::attempt to check if admin email password i correct and user actually is admin
+
+AdminController
+
+public function login(Request,$request){
+if($request->isMethod('post')){
+    		$data=$request->input();
+    		if (Auth::attempt(['email' => $data['email'],'password' => $data['password'],'admin' => ['1']])) {
+    			echo "Successfully Login";
+    		}
+6)Making Layout Structure:
+Create belows folder
+a)adminLayout-It contain all the common files like header,footer for front that will see
+ 	i)admin_design.blade.php
+ 	ii)admin.header.blade.php(admin header part)
+	iii)admin.sidebar.blade.php(admin sidebar)
+	iv)footer.blade.php(admin footer)
+b)frontLayout-It contains all the common files like header,footer,front that will see later on
+
+Display error
+return redirect('/admin)->with('flash_error_message','Invalid UserName and Password');
+
+logout functionality
+
+Add logout function in AdminController.php for logout and its route as well.
+Route::get('/logout','AdminController@logout'); 
+AdminController
+public function logout()
+{
+Session::flush();
+return redirect('/admin')->with('flash_success_message','You have been logged Out Successfully ');
+}
+
+7) We are going to protect our admn routes.Now we will protect our dashboard route so that no one can access it without logging into admin.We will discuss two appraoches ;
+	i) with Sessions  ii) With middleware
+i) with Session is the simplest appraoch that we used i most cases.We will do with Session .We will start admin session at the time of successfully login adn then compare that ssession variable in every admin function in our case
+In Admin controller php (we modyfying our lopgin function)
+Session::put('adminSession,$data['email'] adn we will compare this in dashboard to function to check if adminSession exist or not.If exist then we will do our taskboard other redirect into login page..
+public function dashboard(){
+if(Session::has('adminSession')){
+}else{return redirect('/admin')->with('flash_message_error','Please Login to access');
+}
+return view ('admin.dashboard);
+}
+ii) Middleware- We basically use for user authenitication in laravel SO. here w e will used for our own Amdin AUthenitication.you can say protection
+We will add ROute::group syntax in our route web.php that will contain all our admin routes that need protection and we need to make change in redirect if Authitication.php 
+RedirectIfAuthenction
+modfying
+if(Auth::guard($guard)->check(){
+return redirect('/home);
+}
+else{
+return redirect()->action('adminController@login')-with('flash_message_error','Please login to access');
+
+8) Creating Setting Page for our admin panel
+-Update Password from(admin can update password)
+i) Create Setting.blade.php (Route::get(/admin/setting','AdminController@settings');
+keep this route in ROute::group to protect it from unauthorized access  
+ii) giving link to header of setting href={{"/admin/setting"}}
+changeing id of setting.blade.php  current password name="current_pwd"
+				   new password ="new_pwd"
+				current password="confirm_pwd"	(Due to the change in id ,validation will be stoped so modifing matrix-form-validation)	 
+
+			
