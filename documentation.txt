@@ -1,5 +1,5 @@
 https://athemes.com
-https://wrappixel.com/templates/,atrix-admin
+https://wrappixel.com/templates/,matrix-admin
 1) 
 - Makinng New LAravel project composer create-project --prefer-dist laravel/laravel ecommerce "5.7.*"
 . Copying CSS,JS,Images,font to public folder
@@ -94,6 +94,1648 @@ keep this route in ROute::group to protect it from unauthorized access
 ii) giving link to header of setting href={{"/admin/setting"}}
 changeing id of setting.blade.php  current password name="current_pwd"
 				   new password ="new_pwd"
-				current password="confirm_pwd"	(Due to the change in id ,validation will be stoped so modifing matrix-form-validation)	 
+				current password="confirm_pwd"	(Due to the change in id ,validation will be stoped so modifing matrix-form-validation)
 
+9) Now We will check whether  if our current password is correct or incorrect using jquery/Ajax in our setting page
+
+10) We will now update our admin password.
+ 		i) Update Setting.blade.php:First Update password form with action and scrf token. we put action="{{url('/admin/update-pwd')}}" method="post" and also 			we put <input type="hidden" name="_token" value="{{csrf_field()}}">	 
+		ii) Now we will add Route for our update password.This time we will add both Get/POST method in route like  Route::match(['get','post'],'/admin/update-			pwd,'AdminController@updatePassword) in Route::group so only admin can access .	
+		iii) Making function in AdminController updatePassword() and check again current password and if correct then we update it and return to setting page 		with success message otherwise we will display error message.
+
+11) Categories|Migrations- We  will create categories table with migration,will write route for categories and make category pages in admin for add/view/edit and delete.
+	i) Creating Category table:- php artisan make:migration create_category_table.Replacing category in categories and add parent_id,name,url,status and remember 		token in migration file and run php artisan migrate.
+	ii)Creating Controller- php artisan make:controller CategoryCOntroller
+	iii)Creating Model :- php artisan make:model Category
+	iv) Creating Route:- Route::match(['get','post'],'/admin/add-category,'CategoryController@addCategory');
+	v) Creating  categories folder in admin and add_category.blade.php and adding from form validation and changing form name and also updating in matrix-form-  validation-js.
+vi) Updating category controller function
+
+12) Displaying Categories with Datatables(website:https://datatables.net) 
+	i) Updating sidebar for add and view routing.
+	ii) Creating ROute for viewing category('/admin/view-categories','CategoryController@viewCategories');
+	iii) Creating function in categoriesController viewCategories
+	iv) Creating view_categories.blade.php and add admin design it and also copying datatable format from our matrix .
+	v)Copying from table.html 
+	vi) Updating Catgory Controller 
+	vii) Adding foreach-loop to view all category that has been added.
+
+13) Editing Categories 
+	i) Adding Route in web.php Route::match(['get','post'],'/admin/edit-category','CategoryController@editCategory');
+	ii) Now making function in CategoryCOntroller public function editCategory() also we pass $id along with $request.
+		public function editCategory()
+		{
+		$categoryDetails=Category::find($id);
+		return view('admin.categories.edit-category')->with(compact('categoryDetails'));	
+		}
+	iii)Now making pages edit-category.blade.php action={{('/admin/edit-category/.$categortDetails->id)}} passing to id.
+	iv) Again making function for updating in editCategory 
+			publuc function editCategory()
+			{
+			if($request->isMethod('post')
+			$data=$request->all();
+			$category=Category::find($id);
+			$category->name=$data['category_name'];	
+			$category->description=$data['description'];
+			$category->url=$data['url'];
+			$category->update();
+	v) TO validate change name of form id into edit_category and also change make Jquerry validation in matrix.validation.js
+
+14) Deleting Category
+	i) Adding route Route::match(['get'.'post'],'/admin/delete-category /{id}','CategoryController@deleteCategory');
+	ii) Adding function in CategoryController  deleteCategory($id=null)
+		$category::find($id);
+		$category->delete();
+		return redirect()->back()->with('flash_success_message','Your Category has been deleted Successfully'):
+	iii) Adding javascript where we put id="delCat"  and makinf function is matrix.validation.js 
+		$("#delCat").click(function(){
+		 if(confirm('Are You sure you want to delete ?')){
+		return true;
+		}
+		return false;
+		});
+15) Updating Add Category Function
+		i) Create level variable which contains all the main categories having parent id.
+		      $levels=Category::where(['parent_id'=>0])->get()
+		ii)Updating in add-category.blade.php 
+		<div class="controls">
+                  <select name="parent_id" style="width:220px">
+                    <option value="0">Main Category</option>
+                    @foreach($levels as $val)
+                    <option value="{{$val->id}}"  >{{$val->name}}</option>
+                    @endforeach
+                  </select>
+                </div>
+              	</div>
+	iii)updating edit-category.blade.php
+		<div class="controls">
+                  <select name="parent_id" style="width:220px">
+                    <option value="0">Main Category</option>
+                    @foreach($levels as $val)
+                    <option value="{{$val->id}}" @if($val->id=$categoryDetails->parent_id)selected @endif >{{$val->name}}</option>
+                    @endforeach
+                  </select>
+                </div>
+              	</div>
+
+16) Product Section
+	i) Making Table php artisan make:migration create_products_table
+  		Adding category_id,product_name,product_code,product_color,description,price,image in products_table.
+	ii) Making Controller php artisan make:controller ProductsController
+ 	iii) Making Model php artisan make:model Product
+	iv) Making routes for Add products in web.php files (Route::match(['get','match'],'/admin/add-product','ProductsController@addProduct');
+	v) Making function in ProductController 
+		  public function addProduct(Request $request)
+    {
+    	$categories=Category::where(['parent_id'=>0])->get();
+    	$categories_dropdown="<option selected disabled>Select</option>";
+    	foreach($categories as $cat)
+    	 {
+    		$categories_dropdown .="<option value='".$cat->id."'>".$cat->name."</option>"; 
+    		$sub_categories=Category::where(['parent_id'=>$cat->id])->get();
+    		foreach($sub_categories as $sub_cat) 
+    		{
+    			$categories_dropdown .="<option value='".$sub_cat->id."'>&nbsp;--&nbsp;".$sub_cat->name."</option>";
+    		}  	
+    	}
+
+    		return view('admin.products.add-product')->with(compact('categories_dropdown'));
+    			} making subcategories and categories in product add .
+		also add use App\Category;
+			 use App\Product
+		use Session;
+		use Auth;
+18)Creating Product Images In Datavase and image itself in some folder by resize.
+	i) Now Creating 3 folder 
+	   small folder having small product images
+	   medium folder having medium product images
+	   large folder having large product images
+	ii)Install Intervention Package 
+		composer require intervention/image
+ 		Add config app.php Intervention\Image\ImageServiceProvider::class,
+		                   'Image' => Intervention\Image\Facades\Image::class,
+	iii) Add Validation for Image
+	we give image id and name and put validation in matrix.validation.js
+	 iv) Add encytpe ="multipart/form-data"
+	v) Update productcontroller in function addProducts 
+		if($request->hasFile('image')){
+    			$image_tmp=Input::file('image');
+    			if($image_tmp->isValid()){
+    				$extension=$image_tmp->getClientOriginalName();
+    				$filename=rand(111,99999).'.'.$extension;
+    				$large_image_path='img/backend-img/products/large/'.$filename;
+    				$medium_image_path='img/backend-img/products/medium/'.$filename;
+    				$small_image_path='img/backend-img/products/small'.$filename;
+    				 Image::make($image_tmp)->save($large_image_path);
+    				 Image::make($image_tmp)->resize(600,600)->save($medium_image_path);
+    				 Image::make($image_tmp)->resize(300,300)->save($small_image_path);
+
+    				 $product->image=$filename;
+    			}
+      vi) now we store image name in database and image in folder that we created
+19) Viewing Product Items 
+    	i)creating route webpage (Route::get('/admin/view-product','ProductsController@viewProduct');)
+	ii)Making function in ProductController 
+		 public function viewProduct()
+   	 {
+    		$products=Product::get();
+    		$products=json_decode(json_encode($products));
+    	
+    		foreach($products as $key => $val){
+       	     $category_name = Category::where(['id'=>$val->category_id])->first(); //to show category id into name
+        	    $products[$key]->category_name = $category_name->name;
+        }
+ 
+
+    	return view('admin.products.view-product')->with(compact('products'));
+	    }
+	iii) Making pages in product  view -product.blade.php 
+	 making foreach loop 
+20 Creating Modal pop-up for showing complete product
+	i)Display View Link- creating view product .blade.php
+	ii) Copy Modal Scripts- Open Interface.html copying popver.js scriptt to admin.design
+	iii)Update View Link-Now we will update view link to open popup  Adding popup Add product with #mymodal so we open for event product.
+
+21) Creating Edit Products
+	Create Route::match(['get','post'],'/admin/edit-product/{id}','ProductController@editproduct')
+	Creating function in Product Controller
+		public function editProduct(Request $request,$id=null)
+	Creating edit-product.blade.php
+	Add Validation for edit except images.
+
+22) Updating Product Images
+	we will add one hidden field in edit-product.blade.php whic we pass current product
+	<input type="hidden" name="current_image" value="{{productDetails->image}}"
+		 productcontroller in function addProducts 
+			if($request->hasFile('image')){
+    				$image_tmp=Input::file('image');
+    				if($image_tmp->isValid()){
+    				$extension=$image_tmp->getClientOriginalName();
+    				$filename=rand(111,99999).'.'.$extension;
+    				$large_image_path='img/backend-img/products/large/'.$filename;
+    				$medium_image_path='img/backend-img/products/medium/'.$filename;
+    				$small_image_path='img/backend-img/products/small'.$filename;
+    				 Image::make($image_tmp)->save($large_image_path);
+    				 Image::make($image_tmp)->resize(600,600)->save($medium_image_path);
+    				 Image::make($image_tmp)->resize(300,300)->save($small_image_path);
+
+    			}
+			}else{
+			$filename=$data['current_image'];
+
+			}
+	If we update new image then it will be uploaded otherwise it gonna keep current images
+
+23) Delete Product I
+	i)  Making Route::match(['get','post'],'/admin/delete-product','ProductController@deleteProducts');
+	ii) Making delete function in ProductController passing id 
+		public function deleteProduct($id=null)
+			{
+				$product=Product::find($id);
+				$product->delete();
+				return redirect('/admin/view-product')->with('flash_success_message','Your Product Has Been Succesfully Deleted');
+	
+			}
+24)  Product Attributes
+	i) Create product_table (with Migration) -php artisan make:migration create_products_attributes_table
+	 Add table product_id,sku,size,price,stock and run php artisan migrate.
+	ii) Creating Routes for attributes Route::match(['get','post'],'/admin/add-attributes/{id}','ProductsController@addAttributes');
+	iii) Noew we will create addAttribute function in ProductController adn will aldo pass product id as parameter.	
+	iv) Creating Pages in add-attributes.blade.php in Products folder
+	v Now we will create addattribute function in product Controller and will also product id as parameter 
+ 	vi) Now showing product information in add-attribute.blade.php and show product name,product code and colour
+	vii) We will insert "ADD" link in view products blade
+	viii)Add Product Attributes form:Add Multiple field.creating add.remove kind of functionality in jquery so that we can add multiple attrubutes like multiple 		     sizes,stock,price stu.
+	ix) Search Gogle www.codexworld.com/add-remove-input-fields-dynamically using jquery. Updating matrix.form-validation Copyin Jquert script to our js file
+         x) now Saving all attributes in add attributes function in foreach loop and also adding input type="hidden" name="product_id"
+		 foreach($data['sku'] as $key=>$val){
+            if(!empty($val)){
+                $attribute=new ProductsAttribute;
+                $attribute->product_id =$id;
+                $attribute->sku=$val;
+                $attribute->size=$data['size'][$key];
+                $attribute->price=$data['price'][$key];
+                $attribute->stock=$data['stock'][$key];
+                $attribute->save();
+            }
+          }
+
+25) Show Product Attributes: We need to show product attributes as well after adding them in Products Attribute blade.update our product model to add hasMany relation 	
+	hasMany relation mean one to Many like there is one Product and that can have multiple attribute.
+		i) Product Model
+			class Product extends Model
+			{
+				public function attributes(){
+				return $this->hasMany('App\ProductAttribute');
+			}
+		ii) Update add atribute function
+			add attribute relation/function to our query to add attribute to produced array/json data/
+			$productDetails=Product::with('attributes')->where(['id'=>$id])->first();
+		iii) copying viewingproduct into add product to show product attrubites 
+		iv) Adding Validation
+ 
+26 Deleting Product attributes
+    above as same (sweetalert pending)
+27)  Frontend 
+   	i) Delete unwanted and unneccessary things from backend 
+	ii) Download Template of ecommerce http://www.free-css.com/free-css-temp...
+	iii) Now Copy CSS into public/css/frontend-css and paste it and other js image and font as well.
+	iv) Now make 4 part for admin header admin footer and admin design.
+	v) Now make contoller IndexController for index page command:php artisan make:controller IndexController
+	vi) Creating routing for index page 
+	vii) Create function in IndexController for index.
+	viii) Set paths for CSS/JS/Images/Fonts.
+	ix) Now updatin paths for CSS/JS/Images/Fonts in front design blade file.Also updating paths in index.blade.php file.
+
+28) Showing All Product in index.blade.php
+	i) Updating controller in IndexController $productsAll=Product::orderBy('id','desc')->get() which to show in descending order in home page.
+
+29) Displaying Catgories in left Side 
+ 	Basic Approach(without Relation)
+	Advance Approach (With Relation(Recommanded))
+	i) Updating Model of category
+		public function categories(){
+		return $this->hasMany('App\Category','parent_id')->get();		
+		}
+	ii) Updating in index.blade.php 
+	and implementing foreach loop
+30) Category/Listing Pages
+	https:www.example.com/products/shoes
+	i) Route::get('products/{url}','ProductsController@products');
+	ii) Making function products where url are passed as parameter in ProductsController.
+	iii)Creating new pages in listing.blade.php in view/products/listing.blade.php
+	iv) Updating Listing blade.php 
+31) displayinf all main categories like Shirts shoes cap etc 
+	i) Now creating function in Controller.php so that we can include it in front header file that is common for all front end pages
+		 public static function mainCategories()(add static function and return variable)
+    	{
+    		$mainCategories=Category::where(['parent_id'=>0])->get();
+    	
+    		return $mainCategories;
+    	}
+	ii) adding header to include Category Model at top of controller.php use App\Category;
+	iii) Update front_header.blade.php to get $mainCategories vairable that we have returned in COntroller.php
+		use App\Http\Controller\Controller;
+		$mainCategories=Controller::mainCategories();
+	iV( Now adding foreach loop to include main catgoeries in header menu	
+	 
+	iv) Updating Products function in ProductController.php file so that all products belonging to sub categories of main catgoeires will come.
+32) We are going to show 404 page if any category URL doenot exit
+	i) Update Products function:-
+	We need to update produtcs function in ProductionController.php file to show 4o4 page in case URL doesnot exit
+	    $countCategory=Category::where(['url'=>$url])->count();
+     if($countCategory==0){
+        abort(404);
+     }
+	ii) we need to update 404.blade.php
+
+33) Delete Products Images from folders
+	Creating Route::get('/admin/product/{id},'ProductsController@product}
+
+34)Product Detail Page
+	i) Remove Unwanted data Blade File
+	ii) Creating Route::get('product/{id}','ProductsController@product');
+	iii) Creating function public function product() with parameter id so that we can retrive the data of public function products($id=null)
+		$productDetails=Product::where('id',$id)->first();
+        	//Get all Categories and SUbcatgories
+        	$categories=Category::with('categories')->where(['parent_id'=>0])->get();
+      
+     		   return view('products.detail')->with(compact('categories','productDetails'));
+	iv)Create detail.blade.php file
+	v) Update listing.blade.php file- We need to update links of products at listing blade file so that user can reach detail page after clicking on them.
+
+35) Product Detail Attribute
+	i) Update production Atrribute -> add atrributes relation to productDetails Query
+	ii) Updating Details.blade.php 
+		<p>
+									<select id="selSize" name="size" style="width:150px;">
+										<option value="">Select</option>
+										@foreach($productDetails->attributes as $sizes)
+										<option value="{{$productDetails ->id}}-{{$sizes->size}}">{{$sizes->size}}</option>
+										@endforeach
+									</select>
+								</p>
+	iii) Writing Jquery/Ajaz in main.js
+	
+		$(document).ready(function(){
+			$("#selSize").change(function(){
+				var idSize = $(this).val();
+				if(idSize=="")
+				{
+					return false;
+				}
+				$.ajax({
+						type:'get',
+						url:'/get-product-price',
+						data:{idSize:idSize},
+						success:function(resp){
+							$("#getPrice").html("INR"+resp);
+						}, 
+						error:function(){
+							alert("Error");
+						}
+				});
+
+				});	
+		
+		});
+	iv)Create Route :-Route::get('get-product-price','ProductsController@getProductPrice');
+	v) Creating function public function getProductPrice(Request $request)
+     	{
+        $data=$request->all();
+        /*echo "<pre>"; print_r($data); die;*/
+        $proArr=explode("-", $data['idSize']);
+
+       
+        $proAttr=ProductsAttribute::where(['product_id'=>$proArr[0],'size'=>$proArr[1]])->first();
+        echo $proAttr->price; die;
+     
+	 }  Create function getProductPrice in ProductsController where we will get the product attribute price by product id and its size and will return its price.
+	vi)Update detail blade file :-
+		Add id "getPrice" to Product price Span tag so that it will change when size is changed in drop down
+
+	 
+
+	
+
+36)Product Detail Page - Description, Care, Delivery 
+	i) Add Care Column in Product database Table.
+	ii) Update Add_product.blade.php->Add Material And Care Field
+	iii) Update addProductfunction adn editProduct function
+	iv) Update Product Detail Page
+	v)Create front_sidebar
+37) Correct Attributes Issues |Font Awesome Path
+	i) Preventing duplicate SKU
+	ii) Prevent duplicate SIzes for Product:
+	iii) Correct Path for Font Aeesome Icon
+38) Alternate Images
+	i)Update View-products blade.file -Update view products blade file to show seperate tab for add images
+	ii) Create Route:Create GET ROUTE for add images with id in we.php file 
+			Route::match(['get','post'],'/admin/add-images/{id}','ProductsController@addImages');
+	iii) Create FUnction addImages
+	iv) Create add_images.blade.php Creating pages similar to attributes
+	v) Create products_images table with id product,id,image,created_at,updated_at
+	vi) create Model- create model with name ProductsImage php artisan make:model productsImage
+	vii) Update add_images blade file:-
+	viii) Use App\productsImage;
+	ix)Update addImage function to get all the alternate Images
+	x) update add_images.blade file so that we can display all product image inforeach loop
+	xi) Add Delete Link
+	Create Route::get('/admin/delete-alt-image/{id}','ProductsController@deleteAltImage');
+30 Show Alternate image in detail
+	i)Update Product Function to get alternate image
+	ii) Update detail.blade.php to diplay alternate Image
+	iii)Update main.js file -jquery to replace main image with alternate image withc click .First add class "ChangeImage" with img attribute in detail blade file 		where we are view
+	$(".changeImage").click(function(){
+		var image= $(this).attr('src');	
+		$(".mainImage").attr("src",image);
+		});
+	iv) cursor pointer
+	<div class="item active">
+					@foreach($productsImages as $altimage)
+				 <img   class="changeImage" style="width:80px; cursor:pointer"src="{{asset('img/backend-img/products/small/'.$altimage->image)}}" 						alt="">
+					 @endforeach
+										 
+					</div>
+37) Implement Zoom for the products Images in product detail page
+	i) https://i-like-robots.github.io/EasyZoom/- Downloading Easy Zoom Plugin 
+	ii)Removing Unwanted Content/zoom
+	iii) ADD Easy-Zoom CSS and JS FIle in our file public/css/front end css as well as js too
+	iv) Update front_design.blade.php
+	v) Update main.js-Add Script provided by easy zoom to end of main.js
+	vi)Update detail.blade.php add "with thumnails images" code from index.html to our detail.blade.php
+	vii) Update main.css Disable line no 1174 ".view-product img" and add style="width:300px"
+	viii)
+38) 
+	i)Update add_attributes.blade.php(we will add form and make price and stock input fields with update button so that we can update them anytime we want
+	ii) Create Routes:-
+		Create GET/POST route for edit-attributes with id in web.php:-
+	iii)create edit Atrributes Function:- Creating editattributes function in ProducController and also pass the parameter as attribute id so that we can update 		stock and price attributes
+39) Products Atrributes Stock Availabilty
+	We will hide "Add TO Cart" button if total stock of the product is 0 and will also show its Availabilty as "Out of Stock".
+	i) Update product function:-
+		Caculating total stock of all product attributes in product function and return that to our detail blade file.
+	ii)Update detail.blade.php file:
+		update detail blade file and add condition with total stock variable.If total stock is 0 and then will"Out of stock"
+	iii)Update getProductPrice function:-
+		Now will update getProductPrice function in ProductController so that we can get the stock of every attributes in the same way like we used to get 			price attribute
+	iv) Update main.js
+		Now we will update jquery script that we have written for change of size for displaying different price.Now we will also get stock of every size and if 		stock is o then we will hide "Add to Cart" button form jquery and will display Availablity as "Out Of Stock"
+		Adding availabilty id and cartid 
+40) 	We working on product detail page and this time will work on recommended items in which we will show all other proucts of the same category .
+		i) Update products function:-
+       			updating product function in productcontroller in which we will create $relatedProducts variable for getting all the other products of the same 			category
+		ii) Integrate Array Chunk:-We need to integrate array chunk so that we can display 3 products at one go in foreach loop
+		iii) Update detail.blade.php - updating detail blade.php and add for each loop with chunk having value 3 so that 3 products can come in foreach loop 		can come at time
+41) 	We are going to add Enable/Disable fetaure for our products.So we will add Enable checkbox in Add/Edit Product from similar that we have done for our  		categories.
+	i) Updating product table - Addning stautus comlumn in products table with datatypes tinyint and its value as 1. And we are going to set its default value as 	`	   1.
+	ii) Update add_product,blade.php file:
+	Now we will add enable checkbox in products table
+	iii) Update addProduct function in productControler to save the status value.We will save the status value as 1 If Enable checbox is having 1value means it is 		checked and if the value is 0 means if it is unchecked then we will save that 0 value to status.
+	iv) Update edit_product.blade.php file Enabling checkbox in product blade file.
+	v) Updating editProduct function in ProductController to update the value of status 
+	vi) Updating Index function
+		Update Index function in IndexController and add where condition with status as 1 so that we can only show product having value as 1.
+		simply add small syntax to show enable products as where('status',1);
+	vii)Updating product function:-update product function in ProductCOntroller to show products having 1 status.
+	viii)Again Updating Product function in ProductController so that if someone ipens the link of disabled product that is having status value must go to 404 	error
+42) Shopping Cart Process.
+	i) we will create "cart" table and will make addtocart form in detail page so that we can add products to cart every time when we click on "Add To Cart".
+		php artisan make:migration create_cart_table and run php artisan migrate
+	ii) Update detail.blade.php  with addtocart form where we will pass product details to cart table.
+	iii) Create Route GET/POST route in web.php file for addtocart so that we can pass the product detail to store in cart table.
+	iv) Create addtocart function in ProductController to get the product details and insert in cart table.
+	v) Update main.js so that we can send updated price of product attribute whenever user tries to add product in cart.
+	vi) Update addtocart function to insert product details in cart table and add "use DB;" at top of ProductController file.
+	
+43) 	Creating shopping cart page and will show cart items that we have added from product detail page.
+	i) creating cart.blade.php file in products folder where we have already created detail and listing blade files and add front_design to it in the similar way 		like we have did earlier with detail and listing blade.
+	ii) Create Route for cart blade file in web.php 
+		Route::match(['get','post'],'/cart','ProductsController@cart');
+	iii) now create cart function in productscontroller so that we can get products from "cart" table and return them to "cart".
+	iv) Update addtocart function  so that after adding the part into "cart" table,user will automatically redirect to cart.blade.php file that we have created 		recently. We need to create session_id variable to store the particular session of the user intro cart table  $session_id=str_random(30); 
+ 	and we have assigned Session variable to session id:- Session::put('session_id',$session_id);
+	v) Update "cart" function Now we will add query to get all products from cart table according to user session that we have saved in addtocart function.
+	vi) Update cart.blade.php to add foreach loop to show all cart items in cart items in cart blade file like we have done in video.we will also add success 		message synatx that will display success message every time when user add the product into cart.
+44) 	Showing Product Images in cart and also work on delete functionality of cart items/products
+	i) Update Cart Function in productController to get images of the product in cart and return them to blade file.
+	ii)Update cart.blade.php file to add image in our cart blade file by giving image path with image name that we have got in cart function.
+	iii) Creating Route in web.php for delete items/product in our products
+		Route::get('/cart/delete-product/{id}','ProductController@deletecartproduct
+	iv) Updating cart.blade.php to give link for delete with its id
+	v) Create New deleteCartProduct function in ProductController with id as parameter
+45) Updating Quantity fo Cart Items and not allowing duplicate items of having same color and size.
+	i) Creating Route for quantity updating and pass product id and quantity that is either +1 or -1
+		Route::get('/cart/update-quantity/{id}/{quantity}','ProductController@updateCartQuantity');
+	ii) Updating Cart.blade.php 
+		Now we will update cart blade file with + and - links to update quantity. + means it will increment the product quantity by 1 and - means it will 			decrement the quantity by 1.	
+	iii)Creating UpdatingCartQuantity function in ProductController and pass id and quantity to increment or decrement quantiy of cart items.
+	iv) Now for Preventing from Duplicate Items Updating addtocart Function in ProductController to check whether the product with same colour and size and in that			particular session already exists in cart or not. and if product already exists in cart then we will display message in product detail blade file that 			the product already exist 
+	v) Update detail.blade.php file to add error message alert box in detail blade file that we will show every time when product already exists in cart.
+
+46) 	Working on shopping cart process and this time we will check stock of the product while updating in cart. And for that we will make some changes in addtocart 		and updateCartQuantity functions. And later on, we will also show cart total and remove unwanted data from shopping cart page.
+	i) Update addtocart function to add product SKU in cart table instead of product code.
+ 	ii)  Update updateCartQuantity function  to check whether stock updated by user in cart is available or not. And we are going to check with sku of 			that product to get the stock from products attributes table and compare it with the stock demanded by the user.
+	iii) Update cart.blade.php file  to show some background behind error message and we will show cart total as well and will remove unwanted data and adding for 		to diplay total amount
+47)  	Working on coupon code functionality  to apply coupon code" feature at shopping cart page. And also we will add its module in admin panel; Add/ View coupons.
+	i) Create Coupons table using command php artisan make:migration create_coupons_table
+	ii)Run php artisan migrate
+	iii)Create Model for Coupons using command php artisan make:model Coupon
+	iv)Create Controller for Coupons as CouponsController using command php artisan make:controller CouponsController
+	v)  Create Route :-Now we will create GET/POST route in web.php for add coupon form.
+		Route::match(['get','post'],'/admin/add-coupon','CouponsController@addCoupon');
+	vi) Create addCoupon Function in Coupon Controller
+	vii) Create add_coupon.blade.php file :-
+		Now we will create coupons folder in admin folder and then create add_coupon.blade.php file in which we will integrate add coupon form
+		Now we will add admin design to this file same like we did for add product blade file.
+	viii)Update admin_sidebar.blade.php file Now update admin_sidebar blade file to add coupon module there as well i.e. Add/View links for coupon.
+
+48) We will add jquery datepicker for Expiry date and we will also add HTML 5 validation for our Add Coupon form. And finally we are going to save our coupon to 		coupons table with all details.
+	i) Update admin_design.blade.php file 
+		-Search Google for "jquery datepicker" and open the website "https://jqueryui.com/datepicker/" and view its source code.
+		-We will add JS/CSS scripts from this source code to admin design blade file and will give the expiry_date id to datepicker.
+		-Search Google for "disable previous dates in datepicker" and open stackoverflow link to find the code to disable previous dates from datepicker.
+		-$( "#expiry_date" ).datepicker({ minDate: 0});
+	ii) Update add_coupon.blade.php file :- (Add HTML5 Validations)
+		-For Coupon code, we will allow the user to enter coupon of length between 5 to 15 alphanumeric code.
+		-We will use minlength and maxlength HTML 5 validation like below :
+			minlength="5" maxlength="15"
+		-For Amount, we will update type as number so that it will allow to add numbers only.
+		-Also remove enctype="multipart/form-data" and novalidate="novalidate" from form.
+	iii) Update addCoupon function to get all the coupon details from user and store them in coupons table.
+	Now we will update addCoupon function to get all the coupon details from user and store them in coupons table.
+
+	iv) Update Header Statements :-
+		Now include "Coupon" model by adding below statement at the top of CouponsController:
+		use App\Coupon; 
+
+	v) Update admin_design.blade.php file :- (Update datepicker format)
+		We need to update datepicker format so that it will match with MySql date format i.e. yy-mm-dd like below:
+		dateFormat: 'yy-mm-dd'
+
+49)  Coupon Codes Functionality  View Coupons-
+	i) Create GET Route in web.php Route::get('admin/view-coupons','CouponsController@viewCoupons');
+	ii) Create view-coupons.blade.php 
+ 	iii)Update viewCoupon function :-
+		We will update viewCoupon function to write query to get all the coupons and return to blade file.
+	iv) Update view_coupons.blade.php file :-
+		Now we will add foreach loop in view coupons blade file to show all the coupons there in datatable.
+	v) Update addCoupon function :-
+		Now we will update addCoupon function to redirect the admin back to View Coupons blade file after adding the coupon with Success message.
+		Now the coupon has been added and shown in View coupons blade file with message that Coupon has been added successfully.
+
+50)	Edit  Coupons
+	i) Create Route :- Create GET/POST route for edit coupon and also we will pass coupon id to editCoupon function in web.php.
+		Route::match(['get','post'],'/admin/edit-coupon/{id}','CouponsController@editCoupon');
+	ii) Create editCoupon function in CouponController to pass id as paramter to fetch particular coupons adn return all coupon details to edit
+	iii)  Create edit_coupon.blade.php file 
+	iv) updating editCoupon function in CouponController to update all coupon detail
+	v) Creating ROute and creating function for delete Coupon functionbality
+51)  Working on Shopping Cart Page at frontend. We are going to display Coupon code field with Apply button at Shopping Cart Page and if user applies the incorrect 		coupon then it will display error message otherwise we will perform other checks like active/inactive,expiry date etc.
+	i) Update Cart.blade.php file:-Updating design of the cart page to displat the coupon field along with Apply button.
+	ii) Create Route_ Route::post('/cart/apply-coupon','ProductController@applyCoupon');
+	iii) Use Header in use App\Coupon;
+	iv) Now Create applyCoupon function where we will check if coupon is correct or not.And if coupon is not correct then we will display error message at shopping 		cart otherwise will perform other checks.
+
+52) Working on coupon code functionality at shopping cart page. We are going to check all the conditions like Coupon is Active or Inactive and Expiry date of the 		coupon and if it clears these checks, then we will apply discount and will show sub total and grand total as well. And Grand total will contOin amount after 		deducting coupon discount from sub total.
+	i) Update applyCoupon function in ProductController and  will add further checks to see if the coupon is valid or not and checking if amount is valid or 			percentage and add couponamount and couponcode in session
+	ii) Update cart.blade.php to show Coupon discount if correct coupon entered by the user. We will show Sub Total, Discount and Grand Total if coupon is correct.
+
+53) Resolving the issue with coupon code functionality and after that we will work on home page dynamic banners, first we will statically add them and then make them 		dynamic from admin panel.
+ 	i) Update Product COntroller function
+		a)i) Update addtocart function :-
+			First of all update addtocart function by forgetting the session of Coupon Code and Coupon discount like below :-
+			Session::forget('CouponAmount');
+			Session::forget('CouponCode');
+
+		b) Update updateCartQuantity function and forget below sessions :-
+			Session::forget('CouponAmount');
+			Session::forget('CouponCode');
+
+		c) Update deleteCartProduct function and forget below sessions :-
+			Session::forget('CouponAmount');
+			Session::forget('CouponCode');  
+			Now whenever you try to add product into cart or update product into cart and delete product into cart the sesssion will forget and again again 			provide new discount or we need to apply coupon again
+	ii) Working on Home Page banners of our E-commerce website. We are going to add some dummy banners in place of text. And those banners we want to update from 			admin panel.
+		i)Search online in Google for some dummy banners that we can use for our home page. So search for keywords like "generate dummy banners online" and 			open below link :-
+			https://dummyimage.com/
+		First generate one banner of size 1140x340 and we will use at home page for testing.
+		i) Create banners folder :- We have to create banners folder under frontend_images and add banner1.png that we have just created from online website.
+		ii) Update index.blade.php :- Now update index blade file code to adjust the banner and delete the earlier text code.
+		iii) Update main.css :- Now update main.css file and update below code at line number 583
+			.item {
+ 	 		padding-left: 0;
+			}
+54) Home Page Dynamic Slider Banners and Adding Banners
+	i) Create Banner table Manually with link title,image,created_at,updated_at.
+	ii)Update admin_sidebar.blade.php file to give link for add and view banner
+	iii) Creating BannerController  with command php artisan make:controller BannersController
+	iV) Creating Banner model with command php artisan make:model Banner
+	v)Route::match(['get','post'],'/admin/add-banner','BannersController@addBanner');
+	vi)Create Function  in BannersController to add the banner and we will return it to add banner blade file.
+	vii)Create add_banner.blade.php file under banners folder that we create under admin folder. After creating add banner blade file, we will copy admin design 			and content from add_product.blade.php file.
+	viii)Update addBanner function  to add the banner in banners table.
+	ix) Update Header Statements :-
+		Add below header statements in your BrandsController :-
+		use Illuminate\Support\Facades\Input;
+		use App\Banner;
+		use Image;
+
+		We will create banners table with columns like id, image, title, link, status, created_at, updated_at
+	x)Create Route for view banners in web.php file like below :-
+		Route::get('admin/view-banners','BannersController@viewBanners');
+	xi) Create viewBanners function in BannersController where we will get all the banners and return to view banners blade file.
+	xii) Create view_banners.blade.php file
+			
+
+55) Editing Banners in Admin Panel :-
+	i) Create Route  GET/POST route for editing banner with parameter banner id in web.php :-
+		Route::match(['get','post'],'/admin/edit-banner/{id}','BannersController@editBanner');
+	ii) Create editBanner function in BannersController and pass banner id as parameter to get banner details and return to edit banner blade file.
+	iii) Create edit_banner.blade.php file
+	iv) Update editBanner function to get the banner details and update in banners table.
+	v)Create Route for delete banner with parameter id in web.php
+		Route::get('/admin/delete-banner/{id}','BannersController@deleteBanner');
+	vi) Create deleteBanner function in BannerController and pass id as paramter
+ 	vii)Update index function in IndexController to get all the banners and send to index blade file. And make sure banners are enabled.
+	viii) Update index.blade.php file and add foreach loop there to add banners dynamically from index function.
+	ix) Update Headers Statements :-
+		Now add below header statement to include Banner Model :-
+		use App\Banner;
+56)  Create Register/login page from where users can able to register/login to our e-com website. 
+	i) create GET/POST route for Register/Login Page in web.php	
+		Route::match(['GET','POST'],'/login-register','UsersController@register');
+	ii) Create UsersController  for front users using command :
+		php artisan make:controller UsersController
+	iii)Create register function in UsersController and will return to register blade file that we will create in our next step.
+	iv) Create login_register.blade.php file under users folder that also we need to create under views folder.
+57) Adding jQuery validations to user register form  and we will add check for user email and if user email already exists then we will display 	error message 			and will not allow the user to add again. First we will do this check with PHP and then with jQuery remote function.
+	i)Update login_register function First we are going to update login_register function in UsersController to add check in Laravel that if user already exists in 		users table then we redirect back the user to login/register page with error message.
+	ii) Update login_register function in UsersController to add check in Laravel that if user already exists in users table then we redirect back the user to 		login/register page with error message and add usser model in UsersController file by adding below header statement at the top of UsersController file :-
+		use App\User;
+	iii) Update login_register.blade.php file to show error message in login register blade file. 
+ 
+	iv) Now we are going to do this thing with jQuery as well so first we will add jQuery validate file i.e. jquery.validate.js from backend_js to frontend_js and 			then include this file in front_design.blade.php file.
+	v) Update front_design.blade.php file :-
+	Now we will include the path for jquery.validate.js file in front_design.blade.php file.
+	vi) Update main.js file  to add jQuery validations to our register form to add validations for name, email and password. 
+		We can search in Google for jQuery validations like "jQuery validations rules and messages".And now we are going to add validation for our email in 		jQuery with 		remote function/keyword that we will use to call route and function to check whether user already exists or not.
+			Add below code in email validation to remotely check email already exists or not :-
+		remote:"/check-email"
+
+	vii) Create Route  for checkEmail function to check whether user already exists or not :-
+		Route::match(['GET','POST'],'/check-email','UsersController@checkEmail');
+
+	viii) Create checkEmail function  in UsersController to check whether user already exists and return false if it already exists otherwise we will return true.
+		So now we have done with remote function of jquery as well and able to instantly check whether user already exists or not.
+
+58)  We are going to update admin sidebar. We will show the active module at the sidebar with highlighted background like it is shown with Dashboard right now.
+	i) Update admin_sidebar.blade.php
+	(Need to be Completed)
+59)  User Register Form | jQuery Password Strength Indicator -  Add some jquery password checker plugin that helps the users to give strong password.
+	i)Search Google for keyword like "free jquery password plugin" and open below link :-
+		https://www.jqueryscript.net/tags.php...
+		Out of many scripts available there, I have chosen the below one :-
+		Visual Password Strength Indicator Plugin For jQuery - Passtrength.js
+		https://www.jqueryscript.net/form/Vis...
+		You simply need to download this script and run once offline to check if its work fine.
+	ii) Now we will copy all js/css scripts and image from this plugin to our laravel e-com website.
+			a) Copy passtrength.js from plugin js folder to js/frontend-js folder
+			b) Copy passstrength.css from plugin css folder to css/frontend_css folder
+			c) Copy eye.svg image from plugin img folder to images/frontend-img folder
+
+	iii) Update front_design.blade.php file 
+		Now include js/css in front design blade file that we have added in last step.
+	iv) Update main.js file :-
+		Now there is another jquery script that we need to add in main.js file like below :-
+		// Password Strength Script
+		$('#myPassword').passtrength({
+      		minChars: 4,
+      		passwordToggle: true,
+      		tooltip: true,
+      		eyeImg : "/img/frontend_img/eye.svg"
+		});
+
+	v) Update login_register.blade.php file :-
+		Now we will add id to password i.e. myPassword located at register form in login register blade file.
+	After adding everything in a correct way, we able to run password stregth meter in our password field of user register form. 
+
+60)   Working on user register form and this time we are going to add the user in users table. And will redirect the user to cart page with Account and Logout links at 	header.
+	So few of the changes we will make in our Routes and functions so that we can separate login register blade file with register form and login form.
+	a) Update web.php file :-
+	i) Update login-register route with GET method only in place of GET/POST method.
+		// Users Login/Register Page
+		Route::get('/login-register','UsersController@userLoginRegister');
+		ii) Create user-register route with POST method only where user will register from register function.
+		// Users Register Form Submit
+		Route::post('/user-register','UsersController@register');
+	ii) Update UsersController file :-
+	iii) Create userLoginRegister function in which we will simply return the user to login_register blade file.
+	iv) Update register function with request data that submitted from the user register form and then added into the users table and redirect to cart page after 			Auth::Attempt.
+		While adding user into users table, we need to bcrypt the password to make it secure. Visit below link for more information :-
+		https://laravel.com/docs/5.6/hashing
+		Now we will use Auth::attempt to log the user into the website and we will redirect the user to cart page.
+	v) Update Header Statements :-
+	Add below header at top of UsersController file :-
+	use Auth;
+	vi) Update front_header.blade.php file  to show Account and Logout links whenever user is logged in otherwise we will show Login link only.
+	We will use Auth::check() to check whether the user has logged in or not. If Auth::check() is empty, it means the user has not logged in.
+	vii) Create Route (Logout) :-
+	Now create GET route for users logout in web.php like below :-
+	Route::get('/user-logout','UsersController@logout'); 
+	viii) Create logout function :-
+	Now create logout function in UsersController to logout the user and logout the Auth function as well.
+	Auth::logout();
+	We will logout the user with above statement and redirect back the user to index blade file.
+
+61) 	Working on user login functionality. User who already registered to our E-com website can simply login next time when they want to place order. Also, we will 		add jQuery validations to login form like we added in register form earlier on.
+	i) Update login_register.blade.php file and give email and password fields that the user can enter and able to login.
+	ii) Update main.js file (jQuery Validations)  to our login form like we have added for register form earlier.
+	iii) Create Route POST route for login in web.php like below :-
+		Route::post('user-login','UsersController@login');
+	iv) Create "login" function in UsersController file where we will compare user email and password that user entered in login form with Auth::attempt and 			if login details is valid then user can redirect to cart page otherwise Invalid Username or Password message we will display.
+62)  we are going to create account page but that account page user can't access without login so we will also create middleware to prevent that.
+	 i)Create Route for Account Page :-
+		Route::match(['get','post'],'account','UsersController@account');
+	ii) Create "account" function in UsersController :-
+	iii) Create account.blade.php file in users folder and we can access account page even before login and that we need to prevent by creating middleware and 			follow some more steps as given below 
+	iv) Create "Frontlogin" Middleware :-
+		php artisan make:middleware Frontlogin
+	v) Update "Frontlogin" Middleware :-
+		Add below condition in handle function :-
+		if(empty(Session::has('frontSession'))){
+   		return redirect('/login-register');
+		}
+	vi) Update login and register functions :-
+		Now we will start frontSession every time when user login or registers. 
+		Add below Session after Auth::attempt in both login and register functions :-
+		Session::put('frontSession',$data['email']);
+	vii) Update kernel.php file located at /app/http folder under protected $routeMiddleware with 'frontlogin'  class
+	viii) Update web.php file to add account route in Frontlogin Middleware in web.php file. And all other routes that we will do in future and that require user 		to login first.
+	ix) Update "UsersController" with Session at header like below :-
+		use Session; 
+	x) Update "Frontlogin" Middleware with Session as well :-
+		use Session; 	
+	xi) Update "logout" function in UsersController  to forget frontSession in logout function as well.
+
+63) Update users table :- 
+	i)(Manually from PHPMyAdmin) We will add some more columns to our users table like address, city, state, country, pincode and mobile.
+	ii) Import countries table :- 
+		Now we will search Google with the keyword like "countries mysql" and open below link :-
+		https://github.com/raramuridesign/mys...
+		Simply copy and paste mysql code in Phpmyadmin and we will rename apps_countries table to countries table.
+	iii) Create Country Model :-
+		Create Country model by running below command :-
+		php artisan make:model Country
+	iv) Update account.blade.php file :-
+		Now we will update account blade file and add all fields that we have recently added.
+	v) Update "account" function in UsersController :-
+		Now we will get all countries from countries table that we have created in previous steps in "account" function in UsersController and return to 		account blade file.
+	vi) Update Headers in UsersController :-
+		Include Country model at the top of UsersController like below :-
+		use App\Country;
+	vii) Update account.blade.php file :-
+		Now we will add foreach loop to get all countries in countries select box that we have created earlier in account blade file.
+	viii) Update "account" function :-
+		Now update "account" function in UsersController once again to get all user details of particular user so that we can return the user details to 			account blade file to prefilled all user details there. First time only we are getting name, email and password so we will allow user to update name in 		this account update form. After that, we will also allow the user to update other columns as well again and again.
+	ix) Update account.blade.php file :-
+		Now we will update account blade file to get name of the user initially that the user given at the time of registaration.
+
+64)  working on account page of user once again and will complete updating all the fields and will also add jquery validations.
+	i) Update account.blade.php file :-
+		First of all we will get values of all fields and prefilled if already exists like we have done for name field in last video.
+	ii) Update account function :-
+	Now we will update account function in UsersController so that we can get all values in Post method and update in users table matching with user_id.
+	iii) Update main.js file :-
+	Now we will update main.js file to add the jQuery validation for our account form. 
+65)  working on update password form in account page. We will show fields like Current Password, New Password and Confirm Password. 
+	First of all, we will show Current Password is correct or not whenever user fills it.
+	i) Update account.blade.php file :-
+		We will display all three fields mentioned earlier with Submit button.
+	ii) Update main.js file :-
+		Now we will add jQuery function in main.js file that will check whether current password is correct or not via ajax/route/function.
+	iii) Create Route :-
+		Now we will create POST route for checking current password in web.php like below :-
+		Route::post('/check-user-pwd','UsersController@chkUserPassword');
+	iv) Create "chkUserPassword" function :-
+		Now we will create "chkUserPassword" function in UsersController file to check whether current password is correct or not. If correct then we will send 		true otherwise false based on which we will display message under current password field.
+	v) Resolve 419 Error : For resolving this error, please take below steps :-
+ 		a) Add meta statement in front_header blade file as shown in video.
+ 		b) Update jQuery function in main.js file with below code :-
+    		 headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+     		},
+	vi) Update Header Statements :-
+		Add below header statement in UsersController file :-
+		use Illuminate\Support\Facades\Hash;
+	vii) Update main.js file :-
+		We need to update our jQuery function once again to set another id that depends upon true or false response.
+		If response is false then we will display Incorrect Password and if response is true then we will display Correct Password and its value we are going
+		to display under 	
+		Current Password field.
+	viii) Update account.blade.php file :-
+		Now we will update account blade file with chkPwd id that we will display under current password to tell whether current password entered by user is 		correct or not.
+66) Working on update password form. And this time, we are going to add jQuery validation for other fields as well. And finally we will create function to update the 		password.
+	i) Update main.js file :-
+		We can simply copy the password form validations from matrix.form_validations.js and just change the id of the form like #passwordForm and it will work 		fine.
+	ii) Create Route :-
+		Now we will create post route in web.php file for updating user password and we call the "updatePassword function.
+		Route::post('/update-user-pwd','UsersController@updatePassword');
+	iii) Create "updatePassword" function :-
+		Now we will create "updatePassword" function in UsersController to update the user password. First we will check once again whether the current 			password of the user is correct and if correct then we will update the user password whatever user entered.
+67) Working on checkout page. We will add Billing/Shipping Addresses that the user needs to fill while placing order.We have checkout.html file in E-shopper template 	and we will divide checkout.html page into 2 blade files; first one is checkout.blade.php file that will have 	billing shipping addresses. 
+	second one is order_review.blade.php file from where user can review his order and select payment method.
+	i) Update cart.blade.php file :-
+		First of all, we will update Checkout button link at cart blade file.
+	ii) Create Route :-
+	Create GET/POST route for checkout in web.php file in Route::group 
+	Route::match(['get','post'],'checkout','ProductsController@checkout');
+	iii) Create "checkout" function in ProductsController
+	iv) Create checkout.blade.php file insider products folder located under views folder.
+	We can copy forms from login.html to checkout.blade.php file  and make changes in them as shown in video.
+	Bootstrap Form :-
+	We need to search for keyword like "bootstrap form" in Google and open below website :-
+	https://getbootstrap.com/docs/4.0/com...
+	We can get hint to make our form more attractive.
+	We can add form-group and form-control classes to make fields more attractive.
+	Bootstrap Form (Checkbox) :-
+	We need to search for keyword like "bootstrap checkbox" in Google and open below website :-
+	https://mdbootstrap.com/components/bo...
+68) working on checkout page. We will first work on Billing form and display all the user data in billing form if has already filled in account page. And for delivery address form, we will create one table to store delivery address that we will do later on.
+	i) Update "checkout" function in ProductsController to get user details and return to checkout page to display in billing form.
+	ii) Update Header Statements :-
+	Add below statement at top of ProductsController to include User model :-
+		use App\User;
+	iii) Update checkout.blade.php file to show user details in billing form with name and id.
+	iv) Update "checkout" function once again to get all countries from countries table and return to checkout blade file.
+	v) Update Header Statements :-
+	Add below statement at top of ProductsController to include Country model :-
+	use App\Country;
+	vi) Update checkout.blade.php file :-
+	Now we will make country select box in billing form in place of text field same like we have done in account page.
+69)  working on checkout page and this time we will work on delivery address form. We will create one table i.e. delivery_addresses to save the delivery address there and for future orders, we can prefilled delivery address from that table. Also, we will work on Shipping Address same as Billing Address functionality so that it will save user's time when both addresses are same.
+	i) Create delivery_addresses table (Manually)
+		We will create delivery_addresses table manually this time from phpmyadmin. You can create with Laravel Migrations commands as well.
+		We will create delivery_addresses table with below columns :-
+		id, user_id, user_email, name, address, city, state, country, pincode, mobile, created_at and updated_at
+	ii) Create Model "DeliveryAddress"
+		Now we will create model "DeliveryAddress" with below command :-
+		php artisan make:model DeliveryAddress
+	iii) Update checkout.blade.php file :-
+		Give id and name to "Shipping Address same as Billing Address" checkbox like copyAddress as shown in video.
+		We need to update Shipping Address form with id and name for all fields.
+	iv) Update main.js file :-
+		Add jQuery to copy billing address to shipping address when shipping address is same as billing address.
+		we can able to copy billing address to shipping address.
+70)  working on checkout page and this time we will save billing address and shipping address in users table and delivery_addresses table. And if user already added his delivery_address then we are going to show it in checkout page like we are showing user address in billing form.
+	i) Update checkout.blade.php file :-
+		First of all, we will update checkout form with action, method and CSRF token.
+	ii) Update checkout function :-
+		Now update checkout function in ProductsController and add if condition with post method where we are going to update billing and shipping address 			after validating all fields.
+	iii) Update checkout.blade.php file :-
+		Now we will update checkout blade file with the error message that we will show whenever user will miss any billing or shipping form field.
+	iv) Update checkout function :-
+		Now we will update checkout function once again to update users table with billing form and delivery_addresses table with shipping form.
+	v) Update Header Statements :-
+		Add below statement at top of ProductsController :-
+		use App\DeliveryAddress;
+	vi) Update checkout.blade.php file :-
+		Now we need to show shipping address as well in shipping form in checkout page after adding it.
+
+71)   Working on order review page / payment page that will have billing/shipping details, order items and payment methods.
+	i) Update order_review.blade.php file first, we will add order review design from checkout.html page located in E-Shopper template. We will pick some of its 			part and update in our order_review blade file.
+	ii) Update orderReview function  in ProductsController now to get all cart items from cart table and return those items to order review blade file.
+	iii) Update order_review.blade.php file to show the cart items in foreach loop like we did in cart blade file.So you have seen we able to bring cart items in 			order review page as well.
+72) Working on order review page and this time we will show cart items to review that we have added in cart page. 
+	i) Update order_review.blade.php file :- 
+		First of all, we will add order review design from checkout.html page located in E-Shopper template. We will pick some of its part and update in our 			order_review blade file.
+	ii) Update orderReview function :
+		We will update orderReview function in ProductsController now to get all cart items from cart table and return those items to order review blade file.
+	iii) Update order_review.blade.php file :-
+		Now we will update order review blade file to show the cart items in foreach loop like we did in cart blade file.
+73) Working on order review page of E-com website. We will calculate and show sub total, discount amount and grand total in order review page along with the payment 		methods. 
+	i) Update database.php file :- 
+		There is one issue come again and again in our E-com series i.e. something like "field does not have a default value". To resolve this issue, just 			update 	strict as false under mysql array in database.php file located at config folder.
+	ii) Update checkout function :- 
+		Now we will update checkout function in ProductsController to declare $shippingDetails variable as array so that Undefined variable error will not 			come.
+		$shippingDetails = array();
+	iii) Update checkout.blade.php file to Add condition with all user and shipping fields so that if the variables are empty then value will not come.
+	iv) Update order_review.blade.php file and will do some of the calculations to find sub total, discount coupon and grand total.
+
+74) Working on order review page and will display payment methods like COD and Paypal along with the place order button this time.
+	i) Update order_review.blade.php file at products folder under view folder.
+		We will add payment form in which we will add payment methods with radio buttons so that user can select only one payment method at one time. And also 			we are going to display place order button.
+	ii) Update main.js file and We will add selectPaymentMethod function to alert the user if payment method is not selected.
+	iii) Create Route :-
+		Now create GET/POST route for place-order in web.php file like below :-
+		Route::match(['get','post'],'/place-order','ProductsController@placeOrder');
+	iv) Create placeOrder function  in ProductsController and get and print the form data in post method.
+		We are sending grand total and payment method for now. We will also send coupon code and coupon amount later on and we able to select payment method 		and place order button brings us to placeOrder function where we will do order processing. 
+75) working on order placement process. For placing orders either from COD or Paypal, we need to create orders tables to insert the orders details into them so that 	admin and user can view orders details anytime they want. 
+	So in this video, we are going to create below 2 tables:-
+	i) orders table
+	ii) orders_products table
+	i) Create orders table :-
+	We will first create orders table manually from phpmyadmin to speed up the process. You can also create with Laravel migrations commands as well.
+	"orders" table will contain delivery details, coupon / shipping details, grand total and other main information.
+	Create orders table with below columns and data types :-
+		id  int(11) primary unique
+		user_id  int(11)
+		user_email  varchar(255)
+		name  varchar(255)
+		address  varchar(255)
+		city  varchar(255)
+		state varchar(255)
+		pincode  varchar(255)
+		country  varchar(255)
+		mobile  varchar(255)
+		shipping_charges float
+		coupon_code  varchar(255)	
+		coupon_amount  float
+		order_status varchar(255)
+		payment_method  varchar(255)
+		grand_total  float
+		created_at  datetime
+		updated_at  timestamp
+ii) Create orders_products table :-
+	Create orders_products table that will have ordered products data that the user going to order.
+	Create orders_products table with below columns and data types :-
+		id  int(11) primary unique
+		order_id int(11)
+		user_id int(11)	
+		product_id int(11)
+		product_code varchar(255)	
+		product_name varchar(255)
+		product_size varchar(255)
+		product_price float
+		product_qty int(11)
+		created_at datetime
+		updated_at timestamp
+76) working on order placement process. We are going to insert orders details in orders and orders_products tables that we have created in last video.
+	
+	i) Update orders_products table :-
+		Add product_color column after product_size in orders_products table either manually from phpmyadmin or from migration commands.
+	ii) Create Order Model :-
+		Create Order model for orders table by running below artisan command :-
+		php artisan make:model Order
+	iii) Create OrdersProduct Model :-
+		Create OrdersProduct model for orders_products table by running below command :-
+		php artisan make:model OrdersProduct
+	iv) Update cart function :-
+		Please update cart function to sort out one issue that I have just faced. When the user is logged in, then we will get the products from cart table 		after comparing his user_email otherwise we will take his session_id.
+	v) Update placeOrder function (save orders table details) :-
+		We need to update placeOrder function in ProductsController to save orders detail in orders table in post method.
+		We need to get shipping details from delivery_addresses table and save in orders table as well.
+	vi) Update Header Statements :-
+		Add below statements at top of ProductsController file :-
+		use App\Order;
+		use App\OrdersProduct;
+	vii) Update placeOrder function :-
+		Add conditions for coupon_code and coupon_amount in placeOrder function.
+	viii) Update applyCoupon function :-
+		We are going to resolve another issue now while applying percentage coupons. So please update applyCoupon function to get products from $userCart from 		user_email when user is logged in otherwise from session_id.
+77) working on order placement process. We are going to insert orders details in orders and orders_products tables that we have created in last video.
+		First of all, we will create models for both tables and then update placeOrder function as well.
+		Also, we missed product_color column in orders_products table so add that too.
+	i) Update orders_products table :-
+		Add product_color column after product_size in orders_products table either manually from phpmyadmin or from migration commands.
+	ii) Create Order Model :-
+		Create Order model for orders table by running below artisan command :-
+			php artisan make:model Order
+	iii) Create OrdersProduct Model :-
+		Create OrdersProduct model for orders_products table by running below command :-
+			php artisan make:model OrdersProduct
+	iv) Update cart function :-
+		Please update cart function to sort out one issue that I have just faced. When the user is logged in, then we will get the products from cart table 		after comparing his user_email otherwise we will take his session_id.
+	v) Update placeOrder function (save orders table details) :-
+		We need to update placeOrder function in ProductsController to save orders detail in orders table in post method.
+		We need to get shipping details from delivery_addresses table and save in orders table as well.
+	vi) Update Header Statements :-
+		Add below statements at top of ProductsController file :-
+		use App\Order;
+		use App\OrdersProduct;
+	vii) Update placeOrder function :-
+		Add conditions for coupon_code and coupon_amount in placeOrder function.
+	viii) Update applyCoupon function :-
+		We are going to resolve another issue now while applying percentage coupons. So please update applyCoupon function to get products from $userCart from 			user_email when user is logged in otherwise from session_id.
+		we able to save all orders detail related to delivery information, coupon information, payment method and grand total in orders table.
+78)  Working on order placement process once again and this time we are going to save ordered products into orders_products table means the products that the user 		going to order.
+	Update placeOrder function (save orders_products table) :-
+	Update placeOrder function in ProductsController once again and save orders_products detail in orders_products table. 
+	So we will use foreach loop and will pick all the products from the cart table that the user has added earlier and save them one by one in orders_products 		table.
+	After saving orders details, we require to save order_id in orders_products table 
+	So we have now added products also in orders_products table that the user has ordered for.
+79) working on COD thanks page which will appear after order placement. In last video, you have seen that we able to add order details in orders tables and now we can 		redirect the user to thanks page with brief order details.
+	Before creating thanks page, lets resolve one issue in addtocart function. We need to add user email in carts table if user is already logged in. So please 		update addtocart function like below :-
+	i) Update addtocart function
+	ii) Create Route :-
+		Create GET route for thanks page in web.php file like below :-
+		// Thanks Page
+		Route::get('/thanks','ProductsController@thanks');
+	iii) Create "thanks" function :-	
+		Create "thanks" function in ProductsController that will return to thanks blade file.
+	iv) Create thanks.blade.php file :-
+		Create thanks.blade.php file under views/products folder and make thanks page.
+		Copy from cart.blade.php file and make changes in thanks page.
+	v) Update "placeOrder" function :-
+		Put order id and grand total in Session to show in thanks page and then forget them after showing.
+		Session::put('order_id',$order_id);
+		Session::put('grand_total',$data['grand_total']);
+		return redirect('/thanks');
+	vi) Update thanks.blade.php file :-
+		Update thanks.blade.php file with Order Number and Payable amount by getting Sessions and then forget them as shown in video.
+		Now place new COD order and check everything seems to be fine. Order ID and Grand total comes in thanks page as well.
+80) working on my account orders section. We need to show orders in my account so that user can see anytime.  We will also create hasMany relation between Orders and OrdersProduct models as  one order can have many products. And, we also need to empty shopping cart when user placed the order. 
+	i) Update thanks function :-
+		First of all, we will update thanks function in ProductsController to make the cart empty whenever user placed the order. So just need to add query to 		delete 	the cart items.
+	ii)  Create Route :-
+		Now create GET route for users orders in web.php file :-
+		// Users Orders Page
+		Route::get('/orders','ProductsController@userOrders');
+	iii) Create userOrders function :-
+		Create userOrders function in ProductsController where we will get all users orders.
+	iv) Update Order.php file (hasMany relation) :-
+		Update Order.php file with hasMany relation between order and orders_products tables.
+	v) Update userOrders function
+		Now update user_orders function to get all orders and return to users orders blade file that we will also create.
+		In orders query, we will use with('orders') to get details of ordered products that we have defined in hasMany relation.
+	vi) Create user_orders.blade.php file :-
+		Create user_orders.blade.php file under views/products folder and you can copy thanks.blade.php file content and make changes.
+	We will use datatables to create table in this page to show all users orders so search for "make datatable bootstrap" in Google and open below link :-
+		https://datatables.net/examples/styli...
+		Copy the datatable from there and make changes at our end.
+		Use foreach to display all orders and ordered products as well in separate foreach 
+81) Working on my account orders section. We need to show complete order details with ordered products.  We will also make some changes in my account orders page as well.
+	i) Update user_orders.blade.php file :-
+		First of all, update user_orders.blade.php file located at products folder. We will create new orders folder and move the file in orders folder so that 		no confusion will come in future. Also replace "products" with "orders" in return view in userOrders function. 
+		Now make some changes in user_orders.blade.php file as shown in video. Remove Action column and give link to products name so that user can click on 			them to view complete ordered products details.
+	ii) Create Route :-
+		We will create GET/POST route for ordered products details in web.php file with parameter order id to get details of particular user order.
+		// User Ordered Products Details
+		Route::get('/orders/{id}','ProductsController@userOrderDetails');
+	iii) Create userOrderDetails function :-
+			Create userOrderDetails function in ProductsController with parameter order_id to get details of user order and return to user_order_details 		blade file.
+	iv) Create user_order_details.blade.php file :-
+		Now create user_order_details.blade.php file under resources/views/orders folder and copy content from user_orders.blade.php file and make changes to 			loop through ordered products.
+		Now you can able to click on any of the ordered product to get complete details of the product ordered.
+82)  working on Paypal Payment Gateway. We are going to integrate Paypal Payment form and will create account in Paypal Sandox. We will also move COD thanks page to orders folder from products folder where we will also create paypal page as well.
+	i) Update thanks function :- 
+		Move thanks.blade.php file from products folder to orders folder and update thanks function with return view with orders.thanks instead of 				products.thanks.
+	ii) Create Route :-
+		Create GET route for paypal in web.php file like below :-
+		// Paypal Page
+		Route::get('/paypal','ProductsController@paypal');
+	iii) Create paypal function :-
+		Create paypal function in ProductsController that will return to paypal.blade.php file.
+	iv) Create paypal.blade.php file :-
+		Now create paypal.blade.php file under views/orders folder and copy content from thanks.blade.php file and make some changes in wording.
+	v) Create Paypal Sandbox Account :-
+		We need to create Paypal Business Sandbox Account for testing our website with Paypal. We can make as many dummy transactions as we want and can create 		IPN as well with Sandbox account later on. If everything goes fine then we will apply for Paypal Actual Business Account for our website where we 			can give our bank account details or credit card details to get money to our account from the users.
+		Follow below link to create Paypal Sandbox Account :-	
+		https://developer.paypal.com/docs/cla...
+		After creating Paypal Sandbox Business Account, copy paypal form given at the bottom of the above page and paste it in this paypal.blade.php file.
+		We will send amount, order id and other information in that form to paypal.
+		Update payment button by replacing buynow with paynow as shown in video.
+		Now try placing the order by selecting Paypal method and see Pay now button comes with amount and order id in Paypal page but some issue appears when			 we click on "Pay Now" button. 
+83) Working on Paypal Payment Gateway. We are going to make many attempts so that issue will get resolved and Paypal Payment page will appear. You also need to do at your end and need to some R & D regarding Paypal Payment Gateway. 
+	1) Add Currency Code
+		We need to add Currency Code hidden field in Paypal Payment Gateway with "currency_code" as name and "INR" as value like shown in video.
+		INR stands for the Indian Rupee but you need to mention your own country currency from the below link :-
+		https://developer.paypal.com/docs/cla...
+	ii) Create Paypal Sandbox Business & Personal Accounts :-
+	We need to create another business and personal accounts in Paypal Sandbox. Business account email we will give in Paypal form and Personal account we will use 	as user paypal account that the user will use while making the payment to the order. We need to login with our Sandbox account in another tab of our browser 		only then Paypal Payment form will appear after clicking on "Pay Now" button.
+
+84) working on Paypal Payment Gateway. We will send more information to Paypal Payment Gateway from Paypal form. We will send delivery address information to Credit/Debit card page of Paypal so that it will help user by auto filling Paypal form at Paypal page.
+	i) Update paypal.blade.php file (With Static data) :-
+		We will first update our Paypal form with static data by adding fields like first_name, last_name, address1, address2, city, state, zip and email. 
+		Take help from below Paypal link :-   
+			https://developer.paypal.com/docs/cla...
+			 we able to send all static address information to Paypal Credit/Debit form at Paypal page.
+	ii) Create getOrderDetails function :-
+		We will create getOrderDetails function at Order model this time to get the order details from order id so that we can use order details in Paypal form 		located at paypal page at our website.
+	iii) Update paypal.blade.php file (With Dynamic data) :-
+		Now we will pass delivery information dynamically to Paypal form. 
+		Now all the orders are displayed in admin panel. In next video, we will show complete order details in admin panel.
+		First include Order model in paypal.blade.php file as shown in video and then call getOrderDetails function to get the order details from order id.
+		We will explode name into first name and last name, send address as address1 and other dynamic information in Paypal form.
+	iv) Create getCountryCode function :-
+		We need to create getCountryCode function in Order model as well to get country code from country name as Paypal users country code instead of country 			Below is the list of Currency codes that Paypal users for countries :-
+		https://developer.paypal.com/docs/cla...
+85)  resolve one issue that is coming when one user logout and another user login and found the first user products in cart. Also, we are going to show orders in admin 	panel as well so that admin can check and process the orders.
+	i) Update logout function :-
+		We need to update logout function in UsersController file and forget session_id like below :-
+		Session::forget('session_id');
+	ii) Update admin_sidebar.blade.php
+		Update admin_sidebar.blade.php file with View Orders link as shown in video.
+	iii) Create "view-orders" Route :-
+		Create GET Route for "view-orders" in web.php file with Admin routes like below :-
+		Route::get('/admin/view-orders','ProductsController@viewOrders');
+	iv) Create viewOrders function :-
+		Create viewOrders function in ProductsController file that will return to view_orders blade file.
+	v) Create view_orders.blade.php file :-
+		Create orders folder under admin folder and then create view_orders.blade.php file under orders folder. 
+	vi) Update viewOrders function :-
+		Now update viewOrders function that we have created earlier to get all the orders that we will return to view orders blade file.
+	vii) Update view_orders.blade.php file-
+		Copy content from view_products.blade.php file and then make changes in view_orders.blade.php file to display all the orders in foreach loop.
+86)  work on orders section in admin panel once again and this time we are going to show complete order details in admin.
+	i) Create Route :- 
+		We will create GET route in web.php file for order detail blade file that will come into play when admin click on "View Order Details" at orders 			section in admin panel.
+		// User Ordered Products Details
+		Route::get('/admin/view-order/{id}','ProductsController@viewOrderDetails');
+	ii) Create orderDetails function :- 
+		Create orderDetails function in ProductsController and pass order id as parameter to get order details and return to order_details.blade.php file.
+	iii) Create order_details.blade.php file :- 
+		Create order_details.blade.php file under views/admin/orders/ path and include admin design to it.
+	iv) Update view_orders.blade.php file :-	
+		Update view_orders.blade.php file to add orders detail blade file link to "View Order Details" tab that we have created in the last step.
+	v) Copy from widgets.html :-
+		Copy content from widgets.html file located in Matrix admin template and paste into orders_detail.blade.php file and make necessary changes to show 		Order and Customer Details.
+87) Working on orders section in admin panel once again and this time we are going to show billing, shipping address and ordered products in order details blade file 		in admin panel.
+	i) Update viewOrder function :- 
+		We need to update viewOrder function to get the billing details of the user and return to order details blade file. Shipping details are already coming 		in orders table so we can use it in order details blade file.
+	ii) Update order_details.blade.php file  to show Billing and Shipping addresses of the customer. 
+		Now we will show ordered products like we have shown at frontend. Open user_order_details.blade.php file and copy complete table content from there 			including foreach loop that we have used to show all ordered products. Create another div with row-fluid class and paste table that we have copied from 		user_order_details.blade.php file  and Show more information in Order details like Order Total, Shipping Charges, Coupon Code, Coupon Amount and 		Payment Method.
+88) Working on orders section in admin panel and this time we are going to add "update order status" feature so that admin can update order status anytime like 	shipped, delivered etc.
+	i) Update order_details.blade.php file :-
+		First of all, add form with order_status select box and add some options like New, Pending, In Process, Shipped, Delivered and Cancelled. 
+		Also add hidden input field for order id that we will pass along with order status.
+	ii) Create Route :-
+		Create POST route for update-order-status in web.php file like below :-
+		// Update Order Status
+		Route::post('/admin/update-order-status','ProductsController@updateOrderStatus'); 
+	iii) Create updateOrderStatus Function :-
+		Now we need to create updateOrderStatus function in ProductsController and write query to update order status in orders table of particular order.
+	iv) Update order_details.blade.php file :-
+		Update order_details.blade.php file with success message alert box so that every time when admin updates status, success message will come.	
+		Also, update select box to add condition with option to show selected order status.
+
+89) to do some major changes to resolve one issue that we are facing when we login to admin, we automatically login at front as well with that admin user. So for resolving this, we will create separate table for admin logins and we will login from there.
+	i) Create admins table :-
+		Create admins table with below columns and data types :-
+			id (int) (primary) (unique)
+			username (varchar, 255)
+			password (varchar, 255)
+			status (tinyint)
+			created_at (datetime)	
+			updated_at (timestamp)
+		After creating above table, insert one row with username and password with MD5 like shown in video.
+	ii) Create "Admin.php" model :-
+		Create "Admin.php" model with below artisan command :-
+		php artisan make:model Admin
+	iii) Update "login" function :-
+		Now update "login" function in AdminController. We need to check from admins table instead of users table so we need to replace query and other code.
+	iv) Update admin_login.blade.php file :-
+		Now update admin_login.blade.php file and replace email field with username. Replace value of id and name with username and type with text instead of 			email. 
+	v) Add Header Statements :-
+		Add below header statement at the top of AdminController file to include Admin model :-
+		use App\Admin;
+	vi) Create "Adminlogin" Middleware :-
+		We need to create "Adminlogin" Middleware same like we have created "Frontlogin" Middleware at the beginning of the project. This middleware will help 			us to protect all routes from unauthorized access.
+		Run below Artisan command to create "Adminlogin" Middleware
+		php artisan make:middleware Adminlogin
+		And, make some changes in Adminlogin.php file.
+	vi) Update kernel.php file :-
+		Update kernel.php file located at \app\Http\ folder and add below code in protected $routeMiddleware array at the end as shown in video.
+	vii) Update web.php file :-	
+		Now replace middleware auth with middlware adminlogin for all admin routes as shown in video.
+		Try login now from admin panel with "admin" username and "123456" password that we have set in admins table earlier on. Dashboard page must appear when 		you login and open frontend link and check frontend will not automatically get login this time with admin user as we are not using Auth. We are using 			separate admins table and separate admin Session for admin login. 
+90) Working to update some admin functions so that no issue will come when we will go to settings page and update password.
+	i) Update settings function :-
+		Update settings function in AdminController to get admin details from admins table this time instead of users table as shown in video.
+	ii) Update chkPassword function :-
+		Update chkPassword function to check the admin password from admins table instead of users. And we need to replace Hash function with MD5 in function  	
+	iii) Update updatePassword function :-
+		Now update updatePassword function to update password with MD5 in admins table instead of users table with Hash as shown in video.
+		Now our admin users and front users will not conflict with each other. We are managing them separately. 
+91) Working on emails. We need to send register, order and other emails to users. Like every time when users registers, we will send welcome email to them sending 		their username and password in email as well. 
+	First of all, we need to work on some email settings to send emails from offline as well. We will use Gmail SMTP server to send emails from offline apache 		server.
+	Please follow below steps to configure gmail email settings :-
+	i) First login to your Google account and under Security, enable "2 step verification" as shown in video.
+	ii) Now generate "App Password" from there that you can use in .env file. 
+		Select App and Device while generating "App Password". Like I have selected "Mail" and "Windows Computer" as I am working on Windows. You can select 		"Mac" if you are 		working on "Mac".
+	iii) Open .env file and update Mail credentials as shown in video.
+	iiiMAIL_DRIVER=smtp 
+		MAIL_HOST=smtp.gmail.com 
+		MAIL_PORT=587 
+		MAIL_USERNAME=myemail@gmail.com	 			
+		MAIL_PASSWORD=apppassword 
+		MAIL_ENCRYPTION=tls
+	iv) Update mail.php file located in config folder with from email address and from name as shown in video.
+	v) Run "php artisan config:cache" command after making changes in your .env file.
+	vi) Restart Laravel Server by closing and running "php artisan serve" command again
+	vii) Update "register" function at UsersController to add code to send register email.
+	viii) Update UsersController files with below header statement :-
+		use Illuminate\Support\Facades\Mail;
+	ix) Create register.blade.php file to add Html part of register email under \resources\views\emails\ folder. Create emails folder under resources\views\ folder 		if it does not exists. And add some HTML code Now register new account with Yopmail email address that you can use for testing and check register email 		must comes in your Yopmail email account.
+92) Working on email confirmation process at the time of user registration. We will send activation link to user email at the time of his registration that user needs to confirm first to make his account active.
+	i) Update users table :-
+		First of all, update users table with "status" column of datatype tinyint. We will keep 0 status by default whenever user will register and will make 			the status 1 when user will confirm his email.
+	ii) Update register function :-
+		Now update register function at UsersController to disable register email code that we have written in last video and write code for verification email 		that we need to send to user at the time of registration.
+		We will generate activation code by encoding the email and send to user email in link to confirm so that his account will get activated when he clicks 			on link.
+	iii) Create confirmation.blade.php file
+		Now create confirmation.blade.php file to write html of confirmation email that we need to send to user to confirm his email.
+		Now register with new account and check email if confirmation email comes in email account or not. 
+	iv) Update login function :-
+		Now update login function to check whether the user account is active or not. If not active means if it is 0 then we don't let the user logged in and 			display the error message like below.
+			"Your account is not activated! Please contact admin."
+			And this error we need to display if user tries to login without confirming his email
+93) We aregoing to confirm user email and activate user account. Once activated, user can able to login to his account registered in our E-commerce website.
+	i) Create Route :-
+		Create Route for confirming user email in web.php file like below :- 
+			// Confirm Account
+			Route::match(['GET','POST'],'/confirm/{code}','UsersController@confirmAccount');
+	ii) Create confirmAccount function :-
+		Create confirmAccount function in UsersController and get activation code from Route as parameter that we will decode to get user email. We are going 			to update user status to 1 and return the user back to login page with success message or you can also return the user directly to cart page.
+		And in case email is invalid then we will send the user to 404 page.
+	iii) Update confirmAccount function :-
+		Now we will update confirmAccount function to check the status of the user if user email valid. If staus is 1 then we will return the user back to 			login page with message that 'Your Email account is already activated. You can login now! otherwise we are going to make status 1 and will send 			welcome/register email to user.
+	iv) Create welcome.blade.php file :-
+		Now create welcome.blade.php file in emails folder for welcome email html same like we have done for register and confirmation emails.
+94) Working on order email that we need to send to user everytime when user place order. Order email will contain user 		order details with ordered products,     	billing and shipping addresses as well.
+	i) Update placeOrder function :- 
+		Update placeOrder function at ProductsController and write code for sending order email after saving the order into orders tables. We are going to send 		order email for COD for now, not for Paypal.
+	ii) Add Header Statement  :-
+		Update ProductsController files with below header statement :-
+		use Illuminate\Support\Facades\Mail;
+	iii) Create order.blade.php file :-
+		Now create order.blade.php file in resources/viws/emails/ folder like we have done earlier for register email. 
+		We are going to send simple order email first with order id and later on we will update it will complete order details.							We will also add E-com website logo this time in our order email as shown in video.
+		Check now order email is going after placing COD order at user email. Use yopmail email account for registering and ordering in E-com website for 			testing purpose.
+	iv) Update placeOrder function:- 
+		Now update placeOrder function to add user details and ordered product details into email. Add queries for both and add in email code
+95)  Working on admin panel and will show all registered users in admin panel 
+ 	i) Create Route :-
+		We will create GET route for viewing users in web.php file like below:-
+		// Admin Users Route
+		Route::get('/admin/view-users','UsersController@viewUsers');
+	ii) Create viewUsers function :-
+		Now we will create viewUsers function in UsersController to get all users and return to users blade file in admin that we will create.
+	iii) Create users.blade.php file :-
+		Now create users folder under admin folder and create users.blade.php file and add datatable for displaying users in foreach loop same like we did for			 orders	earlier .
+		And add condition to show status as active if 1 or inactive if 0 as shown in video. 
+	iv) Update admin_sidebar.blade.php :-
+		Update admin_sidebar.php file to show Users tab with view-users link.
+96)  Generate Order Invoice Template | Standard HTML A4 Size
+	Working on order invoice that is required at the time of the shipment of the order. Order Invoice can be generated from the admin panel for every order in 			standard HTML and PDF Format. We will start working on HTML Invoice 
+	i) Create Route :- Create GET route for generating order invoice with parameter order id in web.php file like below :-
+		// Order Invoice
+		Route::get('/admin/view-order-invoice/{id}','ProductsController@viewOrderInvoice');
+	ii) Create viewOrderInvoice function :-
+		Create viewOrderInvoice function at ProductsController in which we are going to get complete order details and return to order_invoice blade file that 			we will create in next step.
+	iii) Create order_invoice.blade.php file under view/orders/ folder in which we will create order invoice html that we will search and download from internet.
+	iv) Download "Order Invoice HTML Template"
+		We will search in Google for keyword "order invoice html template" and copy order invoice from below link to order_invoice.blade.php file :-
+		https://bootsnipp.com/snippets/featur...
+		Now check its print out format is looking perfect by pressing Ctrl+P that will be shown in A4 paper size by default.
+	v) Update viewOrderInvoice function :-
+		Now we will update viewOrderInvoice function to get order details and user details that we will return to order invoice to make it dynamic.
+		Debug both $orderDetails and $userDetails to see whether all order/user details.
+	vi) Returning order details and user details from viewOrderInvoice function to order_invoice.blade.php file in the same way like we have did in 				order_details.blade.php file.
+		We will first make user billing and shipping addresses dynamic and then will show ordered products in foreach loop.
+		We will also calculate order sub total and will show it along with coupon code, coupon discount, shipping charges and grand total.
+97) Working on features items functionality. Right now we are displaying random products from all categories at home page but now we will display only feature products 	that you can update from admin panel. So we will do some changes in database, admin panel and front end as well.
+	i) Update index.blade.php file :- 
+		Remove category-tab div and recommended_items div from index.blade.php file as shown in video that is not required for now.
+	ii) Update products table :-
+		Now add "feature_item" column with data type tinyint and set 0 as default in products table of our "sample" database or whatever database you have 			created for your E-com series.
+	iii) Update add_product.blade.php file :-
+		Now add checkbox for feature item same like we have added for status in add product form at add_product.blade.php file as shown in video.
+	iv) Update addProduct function :-
+		Now update addProduct function in ProductsController to add feature item product as 0 or 1 in feature_item column of products table.
+		Now try adding new product with enabling feature product checkbox to see whether 1 gone there in feature_item column.
+	v) Update edit_product.blade.php file :-
+		Now update edit_product.blade.php file to add feature item checkbox there and checked the checkbox if feature_item column of products table is having 1 		value otherwise unchecked if having 0 value.
+	vi) Update editProduct function  in ProductsController to update feature item product as 0 or 1 in feature_item column of products table.	
+		we are able to update any product as feature item from admin panel. 
+	vii) Update index function  in IndexController to update the query to add the where condition to feature_item in query to get all the feature products and 			display them randomly.
+98)  We are going to create Forgot Password form in which user will enter his email to get new password in his registered email.
+	i) Update login_register.blade.php :-	
+		First we will add "Forgot Password" link under login form at login_register.blade.php file that the user can click to recover his password.
+	ii). Create Route :-
+		Create Get/POST Route for forgot-password in web.php file like below :-
+		// Forgot Password
+		Route::match(['get', 'post'],'/forgot-password','UsersController@forgot_password');
+	iii). Create forgot_password function :-
+		Now create forgot_password function at UsersController that will return to forgot_password.blade.php file.
+	iv). Create forgot_password.blade.php file :-
+		Now create forgot_password.blade.php file under views/users folder and create forgot password form with email field that user will fill to get his new 			password on his email.
+		You can copy content of login_register.blade.php file and replace login form with forgot password form.
+	v) Update forgot_password function :-
+		Now update forgot_password function and in post method condition, check if email exists in users table and if email does not exists then return back 		the user to forgot password page with error message that "Email does not exists".
+99) Working on Forgot Password feature and will send email to user with new password that we will generate.
+	i) Update forgot_password function :-
+			First of all, update forgot_password function to generate new password with bcrypt function that will encode the password to save in users 			table and then we will add email script to send forgot password email.
+	ii) Create forgotpassword.blade.php file :-
+		Now create forgotpassword.blade.php file under resources/views/emails folder same like register.blade.php file located there and make required changes.
+	iii) Update forgot_password function :-
+		Update forgot_password function to return the user to login-register page after sending the forgot password email.
+100)  Working on Paging for home/listing/products pages. First update atleast 5-6 products as feature items so that we can set the paging at home page for 3 items to 		test then we will do at listing pages as well.
+	i) Update index function :-
+		First of all, we will update index function at IndexController file.
+		Replace "get" method with "paginate" method and pass value 3 as argument in paginate method for number of items you would like to display "per page". 
+	ii) Update index.blade.php file :-
+		Now we will use links method of pagination at index.blade.php file to display the links to the rest of the pages in which we are showing maximum 3 		featured items set in paginate method earlier. And, HTML generated by the links method is compatible with the Bootstrap CSS framework.
+		In the same way, we are going to display pagination for listing pages as well.
+	iii) Update products function :-
+		Now we will update products function at ProductsController file with paginate method. Here also, pass 3 argument in paginate method for testing. You 			can set any number as per your requirement later on.
+	iv) Update listing.blade.php file :-
+		Now we use links method of pagination at listing.blade.php as well to display 3 items per page belongs to specific category selected by you.
+
+101) Working on CMS Pages. CMS stands for Content Management System and we will add several CMS Pages from admin panel like About Us, Privacy Policy, Terms and 		Conditions etc. that all we can manage from admin panel itself. We will first create "cms_pages" table, model and controller files first and then work on 		Add/Edit/Delete CMS Page functionality in admin panel.
+	i) Create "cms_pages" table :- 
+		We will manually create "cms_pages"  table in our database with below columns and data types :-
+			id (int) (primary) (auto increment)
+			title (varchar-255)
+			description (text)
+			url (varchar-30)
+			status (tinyint-4)
+			created_at (datetime)
+			updated_at (timestamp)
+		You can also create table with Laravel Migration by following below link :-
+		https://www.youtube.com/watch?v=hSqco...
+	ii) Create CmsPage model :-
+		Now create "CmsPage" model with below Laravel Artisan Command :-
+		php artisan make:model CmsPage
+	iii) Create CmsController  :-
+		Now create "CmsController" file with below Laravel Artisan Command :-
+		php artisan make:controller CmsController
+	iv) Update admin_sidebar.blade.php :-
+	Now update admin sidebar with Add/View CMS Pages links.
+102) Working on CMS Pages and will work on Add CMS Page functionality in admin panel.
+	i) Create Route :-
+		First of all, create GET/POST route for add-cms-page in web.php file like below :-
+		// Add CMS Route
+		Route::match(['get','post'],'/admin/add-cms-page','CmsController@addCmsPage');
+	ii) Create addCmsPage function :-
+		Now create addCmsPage function in CmsController file and return view to add_cms_page blade file that we will create.
+	iii) Create add_cms_page.blade.php file :-
+		Now create pages folder under views folder in which we will create add_cms_page.blade.php file. Add admin design to it and Add CMS Page form. We can 			copy the entire add product page and make changes.
+	iv) Update addCmsPage function :-
+		Now we will update addCmsPage function to receive the post data that contains the cms page details and add query to insert the details into cms_pages 		table.
+	v) Add Header Statement :-
+		Add below statement at top of your CmsController file :-
+		use App\CmsPage;
+103)  Working on CMS Pages and going to display all CMS Pages in datatable and details in Modal Pop-up in admin panel.
+	i). Create Route :-
+		First of all, create GET route for view-cms-pages in web.php file like below :-
+		// View CMS Pages
+			Route::get('/admin/view-cms-pages','CmsController@viewCmsPages');
+	ii). Create viewCmsPages function :-
+		Now create viewCmsPages function to get all the CMS Pages from query and return to view_cms_pages blade file.
+	iii) Create view_cms_pages.blade.php file :-
+		Now create view_cms_pages.blade.php file under pages folder where we will add admin design and will show all Cms Pages in data table in foreach loop 		same like we have did with products and other sections. 
+104) Working on CMS Pages and this time we will work on Update and Delete CMS Page functionality in admin panel.
+	i) Create Route :-
+		First of all, create route for edit-cms-page with parameter id in web.php file like below :-
+		// Edit CMS Page
+			Route::match(['get','post'],'/admin/edit-cms-page/{id}','CmsController@editCmsPage');
+	ii) Create editCmsPage function :-
+		Now create editCmsPage function in which pass id and get cms page details and return to edit_cms_page.blade.php file.
+	iii) Create edit_cms_page.blade.php file :-
+		Now create edit_cms_page.blade.php file under views/admin/pages folder and copy content from add_cms_page.blade.php file and make required changes.
+	iv) Update editCmsPage function :-
+		Now update editCmsPage function to add condition in post method to update the data in cms page and return with success message.
+		Now check in video, we able to update CMS Pages. Now we will also delete CMS Page by taking below steps :-
+	v) Create Route :-
+		Create Get route for delete-cms-page with parameter id in web.php file like below :-
+		// Delete CMS Route
+		Route::get('/admin/delete-cms-page/{id}','CmsController@deleteCmsPage'); 
+	vi) Create deleteCmsPage function :-
+		Now create deleteCmsPage function and add query to delete CMS Page with id and return to view cms pages.
+
+105) Working on CMS Pages and this time we will display CMS Pages at frontend dynamically that we have created last time in admin panel like About Us, Terms & Conditions, Privacy Policy etc.
+	i) Create Route :-
+		First of all, we will create GET/POST route for CMS Page at frontend in web.php file with parameter url like below :-
+		// Display CMS Page
+			Route::match(['get','post'],'/page/{url}','CmsController@cmsPage');
+	ii) Create cmsPage function :-
+			Now create cmsPage function in CmsController with parameter url that will help us to get page details and return to cms_page.blade.php file.
+	iii) Create cms_page.blade.php file :-
+		Now create pages folder under views folder and then create cms_page.blade.php file under pages folder in which include the front design and copy the 		content from index.blade.php file for header and left sidebar that we will keep same for all pages.
+		Middle content part we are going to update dynamically from CMS Page details that we are getting from cmsPage function.
+	iv) Update cmsPage function :-
+		We will update cmsPage function with Categories and Sub Categories code that we require for front_sidebar.blade.php file that we have included in 			cms_page.blade.php file as well.
+	v) Update Header Statements :-
+		Also update below statement at top of CmsController file to include Category model :-
+		use App\Category;
+	vi) Update front_footer.blade.php file :-
+		Now we can update links of Cms Pages located at footer like we can add About Us Page link and also we can create other CMS Pages like Company 				Information and give its link as well.
+	vii) Update cmsPage function :-
+		We want to only show enabled CMS Pages and only CMS Pages that exists so we will add condition in cmsPage function for that as shown in video.
+		We will send the user to 404 page if CMS Page is disabled or does not exists at all.
+		In this way, you can manage all the CMS Pages from admin panel.
+106) Working on Contact Page. We will make contact form that users can fill to submit their queries. Email will be send to admin with user query.
+	1) Create Route :-
+		Create GET/POST route for contact page in web.php file like below :-
+			Route::(['GET','POST'],'/page/contact','CmsController@contact');
+	2) Create contact function :-
+		Now create contact function in CmsController that we will return to contact blade file. Also, add Categories and Sub Categories code to display left 			menu with contact page.
+	3) Create contact.blade.php file :-
+		Now create contact.blade.php file under views/pages folder. Include front design and copy contact form from contact-us.html page located at E-shopper			 template. We need to copy contact-form div content exactly to our contact page. 
+	4) Update contact function :-	
+		Now update contact function to receive the post data from contact form
+107) Working on Contact Page. We will submit the contact form to send the user enquiry email to admin.
+	i) Update contact function :-
+		We will update contact function at CmsController to send the enquiry email to admin from the user.
+	ii) Create enquiry.blade.php HTML email file :-
+		Create enquiry.blade.php HTML email file at resources\views\emails\ folder that will contain html for enquiry email as shown in video.
+	iii) Update Header Statements :-
+		Update below header statements for sending emails at the top of CmsController:- 
+		use Illuminate\Support\Facades\Mail;
+	iv) Update contact function :-
+		Update contact function again to send the user back to contact page with success message like "Thanks for your enquiry. We will get back to you soon.".
+	v) Update contact.blade.php file :-
+		In the last step, update contact.blade.php file to show the success message after sending the enquiry email.
+	vi) Update contact function :-
+		Update contact function located at CmsController and write validator code for name and email as shown in video.
+
+	vii) Update contact.blade.php file :-
+		Now update contact.blade.php file to display the error if validation fails for name or email. You can check this at Laravel website  					https://laravel.com/docs/5.8/validati... under "Displaying The Validation Errors" section.
+
+	viii) Update Header Statement :-
+		Now add below statement at the top of CmsController :-
+		use Validator;
+		Check now validation is working fine. Now we will make it more secure by adding more options in validation.
+
+	ix) Update contact function :-
+		We want to allow the user to add alphabets only and laravel provides alpha option but it will not allow spaces so we will search on net for better 			solution.
+		Search for the keyword like 'laravel validation for alphabetic characters and spaces' and open below stackoverflow link to find the solution.
+		https://stackoverflow.com/questions/3...
+		We will add regular expression for allowing alphabets with spaces.
+108) Working on SEO for our E-commerce project. SEO i.e Search Engine Optimization is really helpful for improving the website ranking in Google and other search 		engines. We are going to integrate meta tags that is really essential for SEO.
+	Meta tags are invisible tags that provide data about your page to search engines and website visitors. In short, they make it easier for search engines to 		determine what your content is about, and thus are vital for SEO.
+	We are going to add meta tags for Home Page, Listing Pages, Detail Page, Shopping Cart Page, Checkout, Order Review, Payment Page, CMS Pages, Contact Us page 		and other pages.
+	First we are going to add meta tags for Home page and Contact us page
+	i) Update index function :-
+		First of all, we will update index function at IndexController file and will add meta_title, meta_description and meta_keywords variables and return to 			index blade file but we will call them at front design that we included at top of index blade file.
+	ii) Update front_design.blade.php file :-
+		Now, update front_design.blade.php file to show meta title, meta keywords and meta description dynamically that we will call from functions.
+		Now Ctrl+U to check that meta tags have come up for Home page.
+	iii) Update contact function :-
+		Now, we will update contact function at CmsController file and will add meta_title, meta_description and meta_keywords variables and return to contact 		blade file but we will call them at front design that we included at top of contact blade file.
+		Now Ctrl+U to check that meta tags have come up for Contact Us page.
+	iv) Update front_footer.blade.php file :-
+		Update Contact Us link at front_footer.blade.php file.
+109),We will add SEO/Meta Tags for CMS Pages that we will manage from admin panel.
+	i) Update cms_pages table :-
+		We will update cms_pages table with below columns :-
+			meta_title
+			meta_description
+			meta_keywords
+	ii) Update add_cms_page.blade.php file :-
+		Add Meta Title, Meta Description and Meta Keywords fields in Add CMS form at add_cms_page.blade.php file in admin panel.
+	iii) Update addCmsPage function :-
+		Update addCmsPage function at CmsController to update query to add meta tags in cms_pages table along with other data as shown in video.
+	iv) Update edit_cms_page.blade.php file :-
+		Add Meta Title, Meta Description and Meta Keywords fields in Edit CMS form at edit_cms_page.blade.php file in admin panel.
+	v) Update editCmsPage function :-
+		Update editCmsPage function at CmsController to edit meta tags in cms_pages table along with other data as shown in video.
+	vi) Update cmsPage function :-
+		Now update cmsPage function at CmsController to get meta_title, meta_description and meta_keywords and return to display at CMS Pages.
+		 we will add SEO / Meta Tags for listing, detail, cart and other pages.
+	vii) Update categories table :-
+		We will update categories table with below columns :-
+		meta_title
+		meta_description
+		meta_keywords
+	viii) Update add_category.blade.php file :-
+		Add Meta Title, Meta Description and Meta Keywords fields in Add Category form at add_category.blade.php file in admin panel.
+	ix) Update addCategory function :-
+		Update addCategory function at CategoryController to update query to add meta tags in categories table along with other data as shown in video.
+	x) Update edit_category.blade.php file :-
+		Add Meta Title, Meta Description and Meta Keywords fields in Edit Category form at edit_category.blade.php file in admin panel.
+	xi) Update editCategory function :-
+		Update editCategory function at CategoryController to edit meta tags in categories table along with other data as shown in video.
+	xii) Update products function :-
+		Now update products function at ProductsController to get meta_title, meta_description and meta_keywords and return to display at Category Pages.
+	xiii) Update product function :-
+		Now we will update meta tags for product detail page at product function at ProductsController.
+	xiv) Update Other Pages Meta Tags :-
+		We will also update meta tags for other pages like cart, checkout and payment pages.
+110) Working on Cart count and Categories count means we will display number of items added in cart at the header along with Cart icon and we will also display number of products in every category at the left sidebar and top of every category page.
+	i) Create cartCount function :-
+		First of all, create cartCount function at Product model where we will write query to get the number of items added in cart with or without 				Auth. I user logged in, then we will get the sum of cart item quantity from Auth otherwise from Session.
+			if(Auth::check())
+    				{
+    				//echo "User is logged in";
+    				$user_email=Auth::user()->email;
+    				$cartCount=DB::table('cart')->where('user_email',$user_email)->sum('quantity');
+			    	}else
+    					{
+    						$session_id=Session::get('session_id');
+    						$cartCount=DB::table('cart')->where('session_id',$session_id)->sum('quantity');
+
+				    		//echo "User is not logged in";
+    					}
+    					return $cartCount;
+	ii) Add Header Statements :-
+		Add below statements at the top of Product model :-
+			use Auth;
+			use Session;
+			use DB;
+	iii) Update front_header.blade.php file :-
+		Include Product model and call cartCount function at the top of front_header.blade.php file to show count with Cart link as shown in video.
+		Now we will add Category count at left sidebar and top of every category / listing pages.
+	iv) Create productCount function :-
+		Create productCount function in which we will get the count of products from the category id from the products table.
+				public static function productCount($cat_id){
+    				$catCount=Product::where(['category_id'=>$cat_id,'status'=>1])->count();
+    				return $catCount;
+	v) Update front_sidebar.blade.php file :-
+		Now include Product model at the top of front sidebar file and call productCount function to get the count of every category.
+			<?php use App\Products ?>
+		Now you can see the count of every sub category at left sidebar.
+			$productfunction=Product::productCount($subcat->id)
+	vi) Update listing.blade.php file :-
+		Update listing blade file to show the count of products in the category that we have currently opened by simply adding the count of category array.
+				{{count($productsAll)}}
+111)Working on video upload functionality, starting from admin panel. First we will add its column in products table and then CRUD in admin panel.
+	1) Update products table :-
+		First of all, add video column with varchar,255 datatype in products table.
+	2) Update add_product.blade.php file :-
+		Add Video field with input type file and id and name as video in add product form at add_product.blade.php file.
+	3) Update addProduct function :-
+		Now update addProduct function to write code to upload video at videos folder and also save it in products table.
+		Now add new product with video and check if the video has been uploaded in videos folder and added in products table as well.
+	4) Update edit_product.blade.php file :-
+		Add Video field with input type file and id and name as video in edit product form at edit_product.blade.php file. Also, add current_video hidden field 		in which we will pass current video in case new video not added by admin.
+	5) Update editProduct function :-
+		Now update editProduct function to write query to upload and edit the video. We will add current video in products table if new video not get uploaded 			in products edit form.
+		Now check both add and edit product video functionality is working fine in admin panel.
+112)  Working on view and delete product video functionality in admin panel. We will also display the video at products detail page as well.
+	i) Update edit_product.blade.php file :-
+		Add Video View and Delete links in edit product form at edit_product.blade.php file. 
+	ii) Create Route :-
+		Create GET route for deleting product video in web.php file like below :-
+		Route::get('/admin/delete-product-video/{id}','ProductsController@deleteProductVideo');
+	iii) Create deleteProductVideo function :-
+		Now create deleteProductVideo function to delete the video from products table and video folder.
+	iv) Update detail.blade.php file :-
+		Now update products detail page to show the product video if exists.
+113) work on Currency Converter and will show at detail page. Currency converter will convert the price of the product in other currencies like USD, GBP etc. There are free and paid 3rd party currency converters available online but we are going to make our own manually this time and later on we are going to do 3rd party as well.
+ we are going to create currency_converter table and set it in admin panel as per our requirement. We will take few main currencies like USD, GBP, EUR
+	i) Create currencies table :-
+		First of all, create currencies table with below columns :-
+		id -  primary, AI
+		currency_code - varchar, 255
+		exchange_rate - float
+		status - tinyint
+		created_at - datetime
+		updated_at - timestamp
+	ii) Update admin_sidebar.blade.php file :-
+		Now update admin sidebar to add currencies link at the bottom.
+	iii) Create Route :-
+		Create GET/POST route for add-currency in web.php file like below :-
+		Route::match(['get','post'],'/admin/add-currency','CurrencyController@addCurrency');
+	iv) Create CurrencyController :-
+		Create CurrencyController by running below artisan command :-
+		php artisan make:controller CurrencyController 
+	v) Create Currency model :-
+		Create Currency model by running below artisan command :-
+		php artisan make:model Currency
+	vi) Create addCurrency function :-
+		Create addCurrency function in CurrencyController to add the currency you want in currencies table. We are going to take Indian Rupee (INR) as the base 		price and add currencies according to that. You can take your currency and add exchange rates belong to that.
+	vii) Create add_currency.blade.php file :-
+		Create currencies folder under views\admin\ folder and then create add_currency.blade.php file at path \views\admin\currencies
+		Add admin design to it and create Add Currency form having Currency Code, Exchange Rate textbox and Enable checkbox.
+	viii) Update addCurrency function :-
+		Now update addCurrency function to receive the currency data and post into the currencies table.
+	ix) Add Header Statement :-
+		Add below statement at the top of CurrencyController.php :- 
+			use App\Currency;
+	x) Create Route :-
+		Create GET route for view-currencies in web.php file like below :-
+		Route::get('/admin/view-currencies','CurrencyController@viewCurrencies');
+	xi) Create viewCurrencies function :-
+		Now create viewCurrencies function at CurrencyController and get all currencies data from currencies table and return to view_currencies.blade.php 			file.
+	xii) Create view_currencies.blade.php file :-
+		Create view_currencies.blade.php file at path \views\admin\currencies\
+		Add admin design to it and show all currencies in datatable.
+		Now we can able to see all currencies in datatable.
+		Now we will work on edit currency functionality.
+	xiii) Create Route :-
+		Create GET/POST route for edit-currency with id parameter in web.php file like below :-
+		Route::match(['get','post'],'/admin/edit-currency/{id}','CurrencyController@editCurrency');
+	xiv) Create editCurrency function :-
+		Now create editCurrency function with Request and id parameters in which we will get currency details that we want to edit and return to edit currency 			blade file.
+	xv) Create edit_currency.blade.php file :-
+		Create edit_currency.blade.php file in which we will create edit currency form to display current currency details that we can send to editCurrency 			function to update.
+	xvi) Update editCurrency function :- Update editCurrency function to get currency details and update in currencies table and return successful update message.
+
+114) Working on Currency Converter and will work on displaying currency converter at detail page to show product price in different currencies. We will work in ajax 	also to show currency rate of product prices according to their sizes.
+	i) Create getCurrencyRates function :-
+		First of all, we will create getCurrencyRates function in Product model so that we can get all the currencies that we have added in admin panel 			for the current price of the product.
+	ii) Update detail.blade.php file :-
+		Include Product model and then call getCurrencyRates function to get all the exchange rates of the current product price as shown in video.
+	iii) Update getProductPrice function :-
+		We will update getProductPrice function to get and return all currencies rate along with main product price according to the size of the price to 			jQuery function at main.js.
+	iv) Update main.js file :-
+			Now we will update ajax at main.js in selSize jQuery function from where we will get price according to size of the product. 
+115) Update "Search Products" feature to resolve issue and show better results.
+	i)  Update listing.blade.php file :-
+		We will not add any paging for search results so add condition for it at listing page as shown in video.
+	ii) Update searchProducts function :-
+		Now update searchProducts function at ProductsController to write better query for searching products so that accurate results will come.
+116) Working on products filters. We will first work on color filter.
+	i) Update front_sidebar.blade.php file :-
+		First of all, we will update front sidebar with color checkboxes statically. Later on, we will make this dynamic.
+	ii) Update products function :- 
+		Now update products function at ProductsController to pass url to front_sidebar.blade.php file so that we can pass it further when using filters.
+	iii) Update front_sidebar.blade.php file :-
+		Update front_sidebar.blade.php file once again to add filter form, hidden url field and update color filters with onChange submit event. It means every 		time when user check or uncheck color filter, form will submit.
+	iv) Create Route :-
+		Now create GET/POST filter route in web.php file like below :-
+		// Products Filters Route
+				Route::match(['get', 'post'],'/products/filter', 'ProductsController@filter');
+	v) Create filter function :-
+		Now create filter function at ProductsController where we will get colorFilter array with all colors checked by user.
+117) working on color filters.
+	i) Update filter function :-
+		Update filter function at ProductsController where we will get colorFilter array with all colors checked by user and make colorUrl string that we will 		pass in listing url. We will use hyphen (-) to separate multiple colours selected by user.
+
+	ii) Update products function :-
+		Now update products function to get colors from filters and get products according to that and return to listing page with updated results.
+	iii) Add Header Statements :-
+		Add below header statement at the top of ProductsController :-
+		use Illuminate\Support\Facades\Redirect;
+	iv) Update front_sidebar.blade.php file :-
+		Update front sidebar once again to update color filters to select the color filters that user checked.
+118) Update color filters for listing page in a better way.
+	i) Update products function :-
+		We will make colorArray with all available product colors and return to listing blade file.
+	ii) Update front_sidebar.blade.php file :-
+		We will add foreach loop with colorArray to make the color filters and add condition to check if the color is checked or not within foreach loop.
+	iii) Update products function :-
+		Now update products function once again to get all colors from products table and make the color array dynamic for color filter.
+	iv) Update front_sidebar.blade.php file :-
+		Add condition to show color filter at listing pages only otherwise it will create issue in other pages like home page. 
+
+
+
+
+
+	
+
+
+
+
+
+
+	
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+	
+    
 			

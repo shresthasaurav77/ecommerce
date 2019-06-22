@@ -29,7 +29,7 @@
     <div class="row-fluid">
       <div class="widget-box">
         <div class="widget-title bg_lg"><span class="icon"><i class="icon-signal"></i></span>
-          <h5>{{Auth::user()->name}}</h5>
+          <h5></h5>
         </div>
         <div class="widget-content" >
           <div class="row-fluid">
